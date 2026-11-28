@@ -61,4 +61,26 @@ class GameWorldTest {
         assertTrue(world.life("tea-owner").remembers("与玩家交谈（第 1 次）"));
     }
 
+
+    @Test void playerActionsChangeNpcRelationshipAndLeaveMemories() {
+        Npc shopkeeper = new Npc("shop","沈掌柜","茶摊老板",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(shopkeeper));
+        world.giveGiftToNpc("shop","好茶",120);
+        assertEquals(12,world.relationship("shop").favor());
+        assertEquals(2,world.relationship("shop").trust());
+        world.helpNpc("shop","修好漏雨的屋顶");
+        assertEquals(20,world.relationship("shop").favor());
+        assertEquals(8,world.relationship("shop").trust());
+        assertTrue(world.life("shop").memories().stream().anyMatch(m -> m.contains("修好漏雨的屋顶")));
+        world.deceiveNpc("shop","谎称茶叶已经付款");
+        assertEquals(8,world.relationship("shop").favor());
+        assertEquals(-17,world.relationship("shop").trust());
+        assertTrue(world.life("shop").memories().stream().anyMatch(m -> m.contains("欺骗")));
+    }
+
+    @Test void unknownNpcCannotReceivePlayerActions() {
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of());
+        assertThrows(IllegalArgumentException.class,() -> world.helpNpc("missing","帮忙"));
+    }
+
 }
