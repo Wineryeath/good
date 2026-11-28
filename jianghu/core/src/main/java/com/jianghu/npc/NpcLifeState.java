@@ -17,6 +17,7 @@ public final class NpcLifeState {
     private long moneyInWen = 500;
     private int health = 100;
     private boolean alive = true;
+    private boolean estateTransferred;
     private final ArrayDeque<String> memories = new ArrayDeque<>();
 
     public int hunger() { return hunger; }
@@ -60,10 +61,12 @@ public final class NpcLifeState {
     public long transferWealthTo(NpcLifeState heir) {
         if (heir == null || heir == this) throw new IllegalArgumentException("继承人无效");
         if (alive) throw new IllegalStateException("在世 NPC 不能进行遗产继承");
+        if (estateTransferred) throw new IllegalStateException("遗产已经完成继承");
         if (!heir.alive) throw new IllegalStateException("继承人已故");
         long amount = moneyInWen;
         heir.moneyInWen = Math.addExact(heir.moneyInWen, amount);
         moneyInWen = 0;
+        estateTransferred = true;
         return amount;
     }
     public List<String> memories() { return List.copyOf(memories); }
