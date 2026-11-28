@@ -104,7 +104,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
         if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
             try {
-                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.MEDITATION_HALL);
                 else if (overworldMode) {
                     var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派静室"));
                     interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-meditation");
@@ -113,7 +113,7 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) && (overworldMode || world.insideMartialSchool())) {
             try {
-                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.SCRIPTURE_HALL);
                 else {
                     var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派藏经阁"));
                     interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-scripture");
@@ -122,7 +122,7 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.R) && (overworldMode || world.insideMartialSchool())) {
             try {
-                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.INFIRMARY);
                 else {
                     var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派医馆"));
                     interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-infirmary");
@@ -142,7 +142,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechniqueOrRealtimeSkill("cloud_piercing");
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             try {
-                interactionMessage = (overworldMode || world.insideMartialSchool()) ? (world.insideMartialSchool() ? world.interactInsideMartialSchool() : world.trainAtNearbyMartialSchool()) : world.trainWithMartialMaster(map);
+                interactionMessage = (overworldMode || world.insideMartialSchool()) ? (world.insideMartialSchool() ? world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.TRAINING_GROUND) : world.trainAtNearbyMartialSchool()) : world.trainWithMartialMaster(map);
                 playerAnimation.train();
             } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
