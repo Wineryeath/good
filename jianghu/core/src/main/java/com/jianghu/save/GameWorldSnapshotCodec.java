@@ -32,6 +32,7 @@ public final class GameWorldSnapshotCodec {
     public static Map<String, String> encode(GameWorldSnapshot s) {
         Map<String, String> out = new LinkedHashMap<>(PlayerSnapshotCodec.encode(s.player()));
         put(out, "world.day", s.day()); put(out, "world.minute", s.minuteOfDay()); put(out, "world.weather", b64(s.weather()));
+        put(out,"world.overworld.region",s.overworldRegion().name()); put(out,"world.overworld.x",s.overworldX()); put(out,"world.overworld.y",s.overworldY());
         put(out, "world.lastAgedDay", s.lastAgedDay()); put(out, "world.lastBusinessDay", s.lastBusinessDay());
         int i = 0; out.put("world.npc.count", Integer.toString(s.npcLives().size()));
         for (var entry : s.npcLives().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
