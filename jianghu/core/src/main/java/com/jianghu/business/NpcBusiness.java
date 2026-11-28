@@ -90,6 +90,7 @@ public final class NpcBusiness {
             long loss = -profit;
             long paid = Math.min(treasuryInWen, loss);
             treasuryInWen -= paid;
+            retainedProfitInWen = Math.max(0, retainedProfitInWen - paid);
             debtInWen = Math.addExact(debtInWen, loss - paid);
         }
         settledDays = Math.addExact(settledDays, 1);
@@ -100,7 +101,9 @@ public final class NpcBusiness {
     public Map<String, Long> distributeProfit(int percentage) {
         if (percentage < 0 || percentage > 50) throw new IllegalArgumentException("分红比例必须在 0..50% 之间");
         if (employees.isEmpty() || percentage == 0 || retainedProfitInWen == 0) return Map.of();
-        long pool = retainedProfitInWen * percentage / 100;
+        if (debtInWen > 0 || treasuryInWen == 0) return Map.of();
+        long availableProfit = Math.min(retainedProfitInWen, treasuryInWen);
+        long pool = availableProfit * percentage / 100;
         long each = pool / employees.size();
         if (each == 0) return Map.of();
         Map<String, Long> result = new LinkedHashMap<>();
