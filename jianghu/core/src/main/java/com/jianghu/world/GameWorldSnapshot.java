@@ -7,6 +7,7 @@ import com.jianghu.business.NpcBusinessSnapshot;
 import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarketSnapshot;
 import com.jianghu.quest.QuestSnapshot;
+import com.jianghu.business.TradeCaravanSnapshot;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ import java.util.Set;
 public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay, String weather,
     Map<String, NpcLifeSnapshot> npcLives, Map<String, NpcRelationshipSnapshot> relationships,
     Map<String, NpcBusinessSnapshot> businesses, Map<MarketRegion, RegionalMarketSnapshot> markets,
-    Map<String, QuestSnapshot> quests, Map<String, Long> questRewards,
+    Map<String, QuestSnapshot> quests, Map<String, Long> questRewards, Map<String, TradeCaravanSnapshot> caravans,
     long lastAgedDay, long lastBusinessDay, Set<String> deathRecorded,
     Map<String, Long> lastSocialDay, Map<String, String> independentHouseholds,
     Map<String, Integer> courtshipDays, Map<String, Long> masterTrainingDays, Map<String, Integer> masterFavor) {
@@ -22,7 +23,7 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
         if (player == null || day < 1 || minuteOfDay < 0 || minuteOfDay >= 1440 || weather == null || weather.isBlank()
                 || lastAgedDay < 1 || lastBusinessDay < 1) throw new IllegalArgumentException("世界存档数据无效");
         npcLives = Map.copyOf(npcLives); relationships = Map.copyOf(relationships);
-        businesses = Map.copyOf(businesses); markets = Map.copyOf(markets); quests = Map.copyOf(quests); questRewards = Map.copyOf(questRewards);
+        businesses = Map.copyOf(businesses); markets = Map.copyOf(markets); quests = Map.copyOf(quests); questRewards = Map.copyOf(questRewards); caravans = Map.copyOf(caravans);
         deathRecorded = Set.copyOf(deathRecorded); lastSocialDay = Map.copyOf(lastSocialDay);
         independentHouseholds = Map.copyOf(independentHouseholds); courtshipDays = Map.copyOf(courtshipDays);
         masterTrainingDays = Map.copyOf(masterTrainingDays); masterFavor = Map.copyOf(masterFavor);
