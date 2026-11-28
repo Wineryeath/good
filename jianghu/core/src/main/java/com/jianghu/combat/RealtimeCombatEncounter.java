@@ -60,6 +60,27 @@ public final class RealtimeCombatEncounter {
         return result;
     }
 
+    /** 按招式自身的体力、内力与劲力参数结算门派绝学。 */
+    public RealtimeCombatController.ActionResult performTechnique(String techniqueId) {
+        requireOngoing();
+        MartialTechnique technique = MartialTechnique.find(techniqueId)
+            .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
+        if (!player.knowsTechnique(techniqueId))
+            return new RealtimeCombatController.ActionResult(false, "尚未学会这门招式", 0, controller.comboCount());
+        if (player.martialStyle() != technique.style())
+            return new RealtimeCombatController.ActionResult(false, "当前武学路数与招式不合", 0, controller.comboCount());
+        if (player.innerEnergy() < technique.innerCost())
+            return new RealtimeCombatController.ActionResult(false, "内力不足，无法施展" + technique.displayName(), 0, controller.comboCount());
+        RealtimeCombatController.ActionResult result = controller.perform(CombatAction.SKILL, player.stamina(), technique.staminaCost());
+        if (!result.accepted()) return result;
+        player.spendStamina(result.staminaSpent());
+        if (technique.innerCost() > 0) player.spendInnerEnergy(technique.innerCost());
+        int damage = Math.max(1, 3 + player.attackPower() + player.martialPower() + technique.power() - enemy.defense());
+        enemy.takeDamage(damage);
+        log.add("你施展" + technique.displayName() + "，对" + enemy.name() + "造成" + damage + "点伤害。");
+        if (enemy.defeated()) win();
+        return new RealtimeCombatController.ActionResult(true, technique.displayName() + "发动", result.staminaSpent(), result.comboCount());
+    }
     public void update(float deltaSeconds) {
         if (deltaSeconds < 0) throw new IllegalArgumentException("战斗时间不能倒退");
         if (status != Status.ONGOING) return;
