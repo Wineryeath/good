@@ -32,6 +32,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private boolean overworldMode;
     private final com.jianghu.save.GameWorldSaveService saveService = new com.jianghu.save.GameWorldSaveService();
     private ArtAssetCatalog artAssets;
+    private float visualTime;
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
@@ -51,6 +52,7 @@ public final class JianghuGame extends ApplicationAdapter {
 
     @Override public void render() {
         float delta = Gdx.graphics.getDeltaTime();
+        visualTime += delta;
         playerAnimation.update(delta);
         world.updateRealtimeCombat(delta);
         if (world.player().health() < previousPlayerHealth) playerAnimation.hurt();
@@ -264,6 +266,20 @@ public final class JianghuGame extends ApplicationAdapter {
                 heroCenterX, heroFeetY, tile * 1.35f, playerAnimation.facing())) {
             // The layered Java sprite remains visible until hand-painted atlas frames are installed.
         }
+        if (!world.insideMartialSchool() && !overworldMode) {
+            for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
+                String actor = npcActorPrefix(npc.role());
+                float npcX = ox + npc.x() * tile + tile / 2f;
+                float npcY = oy + npc.y() * tile + tile / 2f - 8f;
+                // Keep the existing map marker as a graceful fallback when no painted NPC atlas exists.
+                artAssets.drawActor(batch, actor, com.jianghu.combat.CharacterAnimationState.IDLE,
+                    visualTime + Math.abs(npc.npcId().hashCode() % 100) * 0.013f, npcX, npcY, tile * 1.18f, 1);
+            }
+        }
+        world.activeRealtimeCombat().filter(fight -> fight.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+            .ifPresent(fight -> artAssets.drawActor(batch, enemyActorPrefix(fight.enemy().name()),
+                com.jianghu.combat.CharacterAnimationState.IDLE, visualTime,
+                heroCenterX + tile * 1.05f, heroFeetY, tile * 1.42f, -1));
         batch.end();
 
         batch.begin(); font.setColor(Color.WHITE);
@@ -326,6 +342,21 @@ public final class JianghuGame extends ApplicationAdapter {
                 font.draw(batch, "门派驻地："+site.school().name()+"（E查看 Enter进入 M拜师 L修习）", 500, 36));
         }
         batch.end();
+    }
+    private static String npcActorPrefix(String role) {
+        String value = role == null ? "" : role;
+        if (value.contains("守") || value.contains("兵") || value.contains("捕快")) return "npc_guard";
+        if (value.contains("掌柜") || value.contains("商") || value.contains("店")) return "npc_merchant";
+        if (value.contains("书") || value.contains("先生") || value.contains("学")) return "npc_scholar";
+        if (value.contains("弟子") || value.contains("道士") || value.contains("僧")) return "npc_disciple";
+        return "npc_villager";
+    }
+    private static String enemyActorPrefix(String name) {
+        String value = name == null ? "" : name;
+        if (value.contains("狼") || value.toLowerCase(java.util.Locale.ROOT).contains("wolf")) return "enemy_wolf";
+        if (value.contains("首领") || value.contains("头目") || value.contains("掌门")) return "enemy_boss";
+        if (value.contains("高手") || value.contains("侠") || value.contains("武")) return "enemy_martial_artist";
+        return "enemy_bandit";
     }
     private void useTechnique(String id) {
         try {
