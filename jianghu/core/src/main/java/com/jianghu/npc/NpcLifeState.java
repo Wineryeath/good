@@ -87,6 +87,14 @@ public final class NpcLifeState {
         education = Math.min(100, education + points);
     }
     public long moneyInWen() { return moneyInWen; }
+    public void creditMoney(long amount) {
+        if (amount < 0) throw new IllegalArgumentException("入账金额不能为负数");
+        moneyInWen = Math.addExact(moneyInWen, amount);
+    }
+    public void debitMoney(long amount) {
+        if (amount < 0 || amount > moneyInWen) throw new IllegalArgumentException("支出金额无效或余额不足");
+        moneyInWen -= amount;
+    }
     public int health() { return health; }
     public boolean alive() { return alive; }
     public boolean sick() { return illness != null; }
