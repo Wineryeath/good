@@ -193,6 +193,40 @@ public final class GameWorld {
         player.recoverInnerEnergy(25); player.recoverStamina(5); advanceMinutes(30);
         return "你静坐吐纳半个时辰，内力恢复至" + player.innerEnergy() + "。";
     }
+    /** 捕获可恢复的核心世界状态；NPC 身份与初始日程由游戏场景定义。 */
+    public GameWorldSnapshot snapshot() {
+        Map<String, com.jianghu.npc.NpcLifeSnapshot> lives = new LinkedHashMap<>();
+        Map<String, com.jianghu.social.NpcRelationshipSnapshot> bonds = new LinkedHashMap<>();
+        for (Npc npc : npcs) {
+            lives.put(npc.id(), com.jianghu.npc.NpcLifeSnapshot.capture(life(npc.id())));
+            bonds.put(npc.id(), com.jianghu.social.NpcRelationshipSnapshot.capture(relationship(npc.id())));
+        }
+        return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
+            weather, lives, bonds, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
+    }
+    /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
+    public void restoreSnapshot(GameWorldSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("世界快照不能为空");
+        java.util.Set<String> expectedIds = npcs.stream().map(Npc::id).collect(java.util.stream.Collectors.toSet());
+        if (!snapshot.npcLives().keySet().equals(expectedIds) || !snapshot.relationships().keySet().equals(expectedIds))
+            throw new IllegalArgumentException("存档 NPC 名册与当前场景不一致");
+        player.restoreSnapshot(snapshot.player());
+        clock.restore(snapshot.day(), snapshot.minuteOfDay());
+        weather = snapshot.weather();
+        for (Npc npc : npcs) {
+            life(npc.id()).restoreSnapshot(snapshot.npcLives().get(npc.id()));
+            relationship(npc.id()).restoreSnapshot(snapshot.relationships().get(npc.id()));
+        }
+        lastAgedDay = snapshot.lastAgedDay(); lastBusinessDay = snapshot.lastBusinessDay();
+        deathRecorded.clear(); deathRecorded.addAll(snapshot.deathRecorded());
+        lastSocialDay.clear(); lastSocialDay.putAll(snapshot.lastSocialDay());
+        independentHouseholds.clear(); independentHouseholds.putAll(snapshot.independentHouseholds());
+        courtshipDays.clear(); courtshipDays.putAll(snapshot.courtshipDays());
+        masterTrainingDays.clear(); masterTrainingDays.putAll(snapshot.masterTrainingDays());
+        masterFavor.clear(); masterFavor.putAll(snapshot.masterFavor());
+        activeCombat = null; activeRealtimeCombat = null;
+    }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
     public List<Npc> npcs() { return npcs; }
