@@ -5,6 +5,11 @@ import java.util.List;
 
 /** NPC 的持续生活状态：需求、心情、生计与近期记忆。 */
 public final class NpcLifeState {
+    public enum LifeStage { CHILD, YOUTH, ADULT, ELDER }
+    private static final int DAYS_PER_YEAR = 360;
+    private int ageYears = 20;
+    private int daysLivedThisYear;
+    private boolean ageInitialized;
     private static final int MEMORY_LIMIT = 20;
     private int hunger = 25;
     private int energy = 85;
@@ -13,6 +18,27 @@ public final class NpcLifeState {
     private final ArrayDeque<String> memories = new ArrayDeque<>();
 
     public int hunger() { return hunger; }
+    public int ageYears() { return ageYears; }
+    public int daysLivedThisYear() { return daysLivedThisYear; }
+    public LifeStage lifeStage() {
+        if (ageYears < 12) return LifeStage.CHILD;
+        if (ageYears < 18) return LifeStage.YOUTH;
+        if (ageYears < 60) return LifeStage.ADULT;
+        return LifeStage.ELDER;
+    }
+    public void initializeAge(int years) {
+        if (ageInitialized || years < 0 || years > 120) throw new IllegalArgumentException("初始年龄无效或已设置");
+        ageYears = years;
+        ageInitialized = true;
+    }
+    /** 推进一个游戏日；每 360 天增长一岁。 */
+    public boolean passDay() {
+        daysLivedThisYear++;
+        if (daysLivedThisYear < DAYS_PER_YEAR) return false;
+        daysLivedThisYear = 0;
+        ageYears++;
+        return true;
+    }
     public int energy() { return energy; }
     public int mood() { return mood; }
     public long moneyInWen() { return moneyInWen; }
