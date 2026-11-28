@@ -27,6 +27,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private String interactionMessage = "沿着河埠慢慢探索，留意镇中人物的作息。";
     private boolean inventoryOpen;
     private final CharacterAnimationController playerAnimation = new CharacterAnimationController();
+    private int previousPlayerHealth = 100;
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
@@ -45,6 +46,9 @@ public final class JianghuGame extends ApplicationAdapter {
     @Override public void render() {
         float delta = Gdx.graphics.getDeltaTime();
         playerAnimation.update(delta);
+        world.updateRealtimeCombat(delta);
+        if (world.player().health() < previousPlayerHealth) playerAnimation.hurt();
+        previousPlayerHealth = world.player().health();
         moveCooldown -= delta;
         if (moveCooldown <= 0) {
             int dx = 0, dy = 0;
@@ -59,7 +63,11 @@ public final class JianghuGame extends ApplicationAdapter {
                 moveCooldown = .12f;
             }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) performRealtimeAction(CombatAction.DODGE);
+            else world.waitMinutes(30);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SHIFT_LEFT)) performRealtimeAction(CombatAction.HEAVY_ATTACK);
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) inventoryOpen = !inventoryOpen;
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) useItem("meal");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
@@ -87,8 +95,15 @@ public final class JianghuGame extends ApplicationAdapter {
             try { interactionMessage = world.trainWithMartialMaster(map); playerAnimation.train(); }
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) combatAction(false);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) combatAction(true);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) performRealtimeAction(CombatAction.LIGHT_ATTACK);
+            else combatAction(false);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) {
+                try { interactionMessage = world.fleeRealtimeCombat(); } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+            } else combatAction(true);
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.T)) craft("medicine");
         if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) craft("meal");
 
@@ -97,7 +112,8 @@ public final class JianghuGame extends ApplicationAdapter {
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
-            try { interactionMessage = "售出草药，收入 " + world.sellToMarket(map, com.jianghu.business.TradeGood.HERB,
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) performRealtimeAction(CombatAction.BLOCK);
+            else try { interactionMessage = "售出草药，收入 " + world.sellToMarket(map, com.jianghu.business.TradeGood.HERB,
                 world.player().inventory().getOrDefault("herb", 0)) + " 文。"; }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
@@ -177,7 +193,18 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 7基础掌法 8流派招式 9进阶剑招 X攻击 Z撤退 C遇敌 I背包 空格等待 ESC退出",36,16);
+        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 V格挡 空格闪避 Z撤退 C遇敌 I背包 ESC退出",36,16);
+        if (world.activeRealtimeCombat().isPresent()) {
+            var fight = world.activeRealtimeCombat().orElseThrow();
+            shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
+            shapes.rect(Gdx.graphics.getWidth()/2f-230,Gdx.graphics.getHeight()/2f-110,460,220); shapes.end();
+            font.draw(batch,"实时遭遇 · "+fight.enemy().name()+"  "+fight.status(),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+82);
+            font.draw(batch,"敌方生命："+fight.enemy().health()+" / "+fight.enemy().maxHealth()+"   "+(fight.enemyTelegraphing()?"<危险> 敌人即将出刀":"敌人正在寻找破绽"),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+52);
+            font.draw(batch,"你的生命："+world.player().health()+"   体力："+world.player().stamina()+"   连击："+fight.controller().comboCount(),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+22);
+            var rtLogs=fight.log();
+            for(int i=Math.max(0,rtLogs.size()-3);i<rtLogs.size();i++) font.draw(batch,rtLogs.get(i),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-18-(i-Math.max(0,rtLogs.size()-3))*24);
+            if(fight.status()==com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING) font.draw(batch,"X 轻击  Shift 重击  V 格挡  空格闪避  Z 撤退",Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-88);
+        }
         if (world.activeCombat().isPresent()) {
             var fight = world.activeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.88f);
@@ -212,8 +239,15 @@ public final class JianghuGame extends ApplicationAdapter {
         useTechnique(id);
     }
     private void startCombat() {
-        try { world.startBanditEncounter(); interactionMessage = "山道劫匪出现！按 X 出招，按 Z 撤退。"; }
+        try { world.startRealtimeBanditEncounter(); interactionMessage = "山道劫匪出现！注意敌人出刀预警：X轻击、Shift重击、V格挡、空格闪避。"; }
         catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+    }
+    private void performRealtimeAction(CombatAction action) {
+        try {
+            var result = world.realtimeCombatAction(action);
+            interactionMessage = result.accepted() ? result.message() + "（体力 -" + result.staminaSpent() + "）" : result.message();
+            if (result.accepted() && (action == CombatAction.LIGHT_ATTACK || action == CombatAction.HEAVY_ATTACK)) playerAnimation.attack();
+        } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
     }
     private void combatAction(boolean flee) {
         try {
