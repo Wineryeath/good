@@ -45,6 +45,7 @@ public final class GameWorld {
     private final Map<MarketRegion, RegionalMarket> regionalMarkets = new EnumMap<>(MarketRegion.class);
     private final Map<String, TradeCaravan> caravans = new LinkedHashMap<>();
     private long lastBusinessDay;
+    private com.jianghu.combat.CombatEncounter activeCombat;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -52,6 +53,23 @@ public final class GameWorld {
         this.lastAgedDay = clock.day();
         this.lastBusinessDay = clock.day();
         for (MarketRegion region : MarketRegion.values()) regionalMarkets.put(region, new RegionalMarket(region));
+    }
+    /** 发起一场山道遭遇战；战斗结束后保留战报供玩家查看。 */
+    public com.jianghu.combat.CombatEncounter startBanditEncounter() {
+        if (activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
+            throw new IllegalStateException("你正与敌人交手，不能再触发新的战斗");
+        activeCombat = new com.jianghu.combat.CombatEncounter(player, new com.jianghu.combat.CombatEnemy(
+            "road-bandit", "山道劫匪", "蒙面劫匪挥刀拦路，伺机夺取行旅财物。", 42, 11, 2, 120, 35, "herb", 1));
+        return activeCombat;
+    }
+    public Optional<com.jianghu.combat.CombatEncounter> activeCombat() { return Optional.ofNullable(activeCombat); }
+    public String combatAttack() {
+        if (activeCombat == null) throw new IllegalStateException("当前没有进行中的战斗");
+        return activeCombat.playerAttack();
+    }
+    public String fleeCombat() {
+        if (activeCombat == null) throw new IllegalStateException("当前没有进行中的战斗");
+        return activeCombat.flee();
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
