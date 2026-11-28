@@ -61,6 +61,10 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) useItem("medicine");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) useItem("herb");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) equipItem("iron_sword");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) equipItem("leather_armor");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) craft("medicine");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) craft("meal");
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
             try { interactionMessage = "购入草药 " + world.buyFromMarket(map, com.jianghu.business.TradeGood.HERB, 1) + " 文。"; }
@@ -128,6 +132,7 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"需求：饥饿 "+world.player().hunger()+" 口渴 "+world.player().thirst()+"  心情 "+world.player().morale(),36,78);
+        font.draw(batch,"装备：攻击 "+world.player().attackPower()+" 防御 "+world.player().defensePower()+"  武器 "+world.player().equipment().getOrDefault(com.jianghu.item.EquipmentItem.Slot.WEAPON, "无")+"  护甲 "+world.player().equipment().getOrDefault(com.jianghu.item.EquipmentItem.Slot.ARMOR, "无"),36,98);
         font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+"  熟食 "+world.player().inventory().getOrDefault("meal",0)+"  清茶 "+world.player().inventory().getOrDefault("tea",0)+"  药 "+world.player().inventory().getOrDefault("medicine",0),36,36);
         if (inventoryOpen) {
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.04f,0.06f,0.07f,0.92f);
@@ -152,6 +157,14 @@ public final class JianghuGame extends ApplicationAdapter {
         map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point ->
             font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         batch.end();
+    }
+    private void equipItem(String itemId) {
+        try { interactionMessage = world.equipPlayerItem(itemId); }
+        catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+    }
+    private void craft(String recipe) {
+        try { interactionMessage = recipe.equals("medicine") ? world.craftMedicine() : world.cookMeal(); }
+        catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
     }
     private void useItem(String itemId) {
         try { interactionMessage = world.useInventoryItem(itemId); }
