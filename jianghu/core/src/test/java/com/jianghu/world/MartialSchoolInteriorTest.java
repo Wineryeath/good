@@ -35,6 +35,8 @@ class MartialSchoolInteriorTest {
         for(int i=0;i<4;i++) assertTrue(world.moveInsideMartialSchool(-1,0));
         for(int i=0;i<5;i++) assertTrue(world.moveInsideMartialSchool(0,1));
         assertTrue(world.useInsideMartialSchoolFacility(MartialSchoolFacility.Type.TRAINING_GROUND).contains("修习"));
+        assertTrue(world.insideMartialSchool());
+        world.leaveMartialSchool();
         assertFalse(world.insideMartialSchool());
     }
     @Test void visitorMayEnterButCannotUseSectFacilitiesAndLoadReturnsOutside() {
