@@ -189,4 +189,13 @@ class GameWorldTest {
         assertThrows(IllegalArgumentException.class,() -> world.inheritNpcEstate("parent","stranger"));
     }
 
+    @Test void fatalInjuryAutomaticallyRecordsDeath() {
+        Npc npc = new Npc("npc","老周","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(2,8*60),List.of(npc));
+        world.injureNpc("npc",100,"重伤不治");
+        assertFalse(world.life("npc").alive());
+        assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(0).type());
+        assertThrows(IllegalStateException.class,() -> world.recordNpcDeath("npc","重复登记"));
+    }
+
 }
