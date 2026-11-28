@@ -86,6 +86,10 @@ public final class GameWorld {
         if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
         return activeRealtimeCombat.perform(action);
     }
+    public com.jianghu.combat.RealtimeCombatController.ActionResult realtimeCombatTechnique(String techniqueId) {
+        if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
+        return activeRealtimeCombat.performTechnique(techniqueId);
+    }
     public void updateRealtimeCombat(float deltaSeconds) {
         if (activeRealtimeCombat != null) activeRealtimeCombat.update(deltaSeconds);
     }
