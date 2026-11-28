@@ -14,6 +14,7 @@ public final class NpcLifeState {
     private int hunger = 25;
     private int energy = 85;
     private int mood = 60;
+    private int education;
     private long moneyInWen = 500;
     private int health = 100;
     private boolean alive = true;
@@ -52,6 +53,19 @@ public final class NpcLifeState {
     }
     public int energy() { return energy; }
     public int mood() { return mood; }
+    public int education() { return education; }
+    public String educationStage() {
+        if (education < 20) return "启蒙";
+        if (education < 50) return "识字";
+        if (education < 80) return "通晓";
+        return "博学";
+    }
+    /** 教育成长值限制在 0..100。 */
+    public void study(int points) {
+        if (!alive) throw new IllegalStateException("已故 NPC 无法学习");
+        if (points < 1) throw new IllegalArgumentException("学习成长值必须为正数");
+        education = Math.min(100, education + points);
+    }
     public long moneyInWen() { return moneyInWen; }
     public int health() { return health; }
     public boolean alive() { return alive; }
