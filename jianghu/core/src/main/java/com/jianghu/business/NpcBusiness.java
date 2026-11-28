@@ -45,7 +45,7 @@ public final class NpcBusiness {
         return dailyIncomeInWen;
     }
     public void transferOwnership(String newOwnerNpcId) {
-        if (newOwnerNpcId == null || newOwnerNpcId.isBlank() || employees.contains(newOwnerNpcId))
+        if (newOwnerNpcId == null || newOwnerNpcId.isBlank())
             throw new IllegalArgumentException("新主人无效");
         ownerNpcId = newOwnerNpcId;
         employees.remove(newOwnerNpcId);
