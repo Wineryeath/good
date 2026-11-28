@@ -9,6 +9,8 @@ import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarketSnapshot;
 import com.jianghu.quest.Quest;
 import com.jianghu.quest.QuestSnapshot;
+import com.jianghu.business.TradeCaravan;
+import com.jianghu.business.TradeCaravanSnapshot;
 import com.jianghu.social.NpcRelationshipSnapshot;
 import com.jianghu.world.GameWorldSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -75,6 +77,18 @@ public final class GameWorldSnapshotCodec {
             putIntMap(out,p+"objectives",q.objectives()); putIntMap(out,p+"progress",q.progress());
         }
         putLongMap(out,"world.questRewards",s.questRewards());
+        put(out,"world.caravan.count",s.caravans().size()); int ci=0;
+        for(var entry:s.caravans().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()){
+            String p="world.caravan."+ci++ +"."; TradeCaravanSnapshot c=entry.getValue();
+            out.put(p+"id",b64(c.id())); out.put(p+"owner",b64(c.ownerNpcId())); put(out,p+"origin",c.origin().name()); put(out,p+"destination",c.destination().name());
+            put(out,p+"state",c.state().name()); put(out,p+"remaining",c.remainingMinutes()); put(out,p+"elapsed",c.elapsedMinutes()); put(out,p+"delay",c.delayMinutes());
+            put(out,p+"weatherEvent",c.weatherEventRecorded()); put(out,p+"ambushEvent",c.ambushEventRecorded()); put(out,p+"lostCargo",c.lostCargoQuantity()); out.put(p+"lastEvent",b64(c.lastEvent()));
+            put(out,p+"crew.count",c.crew().size()); int cj=0;
+            for(String member:c.crew().stream().sorted().toList()){out.put(p+"crew."+cj+".id",b64(member));put(out,p+"crew."+cj+".strength",c.crewStrength().get(member));put(out,p+"crew."+cj+".wound",c.crewWounds().getOrDefault(member,0));cj++;}
+            put(out,p+"cargo.count",c.cargo().size()); int ck=0;
+            for(var item:c.cargo().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()){put(out,p+"cargo."+ck+".good",item.getKey().name());put(out,p+"cargo."+ck+".quantity",item.getValue().quantity());put(out,p+"cargo."+ck+".cost",item.getValue().totalCostInWen());ck++;}
+        }
+
         putSet(out, "world.deathRecorded", s.deathRecorded()); putLongMap(out, "world.lastSocialDay", s.lastSocialDay());
         putStringMap(out, "world.households", s.independentHouseholds()); putIntMap(out, "world.courtshipDays", s.courtshipDays());
         putLongMap(out, "world.masterTrainingDays", s.masterTrainingDays()); putIntMap(out, "world.masterFavor", s.masterFavor());
@@ -121,8 +135,18 @@ public final class GameWorldSnapshotCodec {
         Map<String,QuestSnapshot> quests=new LinkedHashMap<>();
         for(int i=0;i<count(data,"world.quest.count");i++){String p="world.quest."+i+".";String id=unb64(req(data,p+"id"));
             quests.put(id,new QuestSnapshot(id,readIntMap(data,p+"objectives"),readIntMap(data,p+"progress"),Quest.Status.valueOf(req(data,p+"status"))));}
+        Map<String,TradeCaravanSnapshot> caravans=new LinkedHashMap<>();
+        for(int i=0;i<count(data,"world.caravan.count");i++){String p="world.caravan."+i+".";String id=unb64(req(data,p+"id"));
+            Set<String> crew=new LinkedHashSet<>();Map<String,Integer> strength=new LinkedHashMap<>(),wounds=new LinkedHashMap<>();
+            for(int j=0;j<count(data,p+"crew.count");j++){String q=p+"crew."+j+".";String member=unb64(req(data,q+"id"));crew.add(member);strength.put(member,num(data,q+"strength"));int wound=num(data,q+"wound");if(wound>0)wounds.put(member,wound);}
+            Map<TradeGood,TradeCaravan.Cargo> cargo=new LinkedHashMap<>();
+            for(int j=0;j<count(data,p+"cargo.count");j++){String q=p+"cargo."+j+".";TradeGood good=TradeGood.valueOf(req(data,q+"good"));cargo.put(good,new TradeCaravan.Cargo(good,num(data,q+"quantity"),longNum(data,q+"cost")));}
+            caravans.put(id,new TradeCaravanSnapshot(id,unb64(req(data,p+"owner")),MarketRegion.valueOf(req(data,p+"origin")),MarketRegion.valueOf(req(data,p+"destination")),
+                crew,strength,wounds,cargo,TradeCaravan.State.valueOf(req(data,p+"state")),num(data,p+"remaining"),num(data,p+"elapsed"),num(data,p+"delay"),
+                bool(data,p+"weatherEvent"),bool(data,p+"ambushEvent"),num(data,p+"lostCargo"),unb64(req(data,p+"lastEvent"))));
+        }
         return new GameWorldSnapshot(player, longNum(data,"world.day"), num(data,"world.minute"), unb64(req(data,"world.weather")),
-            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
+            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), caravans, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"));
     }
