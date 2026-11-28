@@ -31,9 +31,11 @@ public final class JianghuGame extends ApplicationAdapter {
     private com.jianghu.map.OverworldExplorer overworld;
     private boolean overworldMode;
     private final com.jianghu.save.GameWorldSaveService saveService = new com.jianghu.save.GameWorldSaveService();
+    private ArtAssetCatalog artAssets;
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
+        artAssets = new ArtAssetCatalog();
         map = GameMap.starterTown();
         world = new GameWorld(new Player("无名旅人"), new WorldClock(1, 360), List.of(
             new Npc("npc-tea-owner", "沈掌柜", "茶摊老板", List.of(
@@ -245,6 +247,25 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         shapes.end();
 
+        float heroCenterX;
+        float heroFeetY;
+        if (world.insideMartialSchool()) {
+            heroCenterX = ox + world.interiorX() * tile + tile / 2f;
+            heroFeetY = oy + world.interiorY() * tile + tile / 2f - 8f;
+        } else if (overworldMode) {
+            heroCenterX = ox + overworld.x() * tile + tile / 2f;
+            heroFeetY = oy + overworld.y() * tile + tile / 2f - 3f;
+        } else {
+            heroCenterX = ox + world.player().x() * tile + tile / 2f;
+            heroFeetY = oy + world.player().y() * tile + tile / 2f - 8f;
+        }
+        batch.begin();
+        if (!artAssets.drawHero(batch, playerAnimation.state(), playerAnimation.stateTime(),
+                heroCenterX, heroFeetY, tile * 1.35f, playerAnimation.facing())) {
+            // The layered Java sprite remains visible until hand-painted atlas frames are installed.
+        }
+        batch.end();
+
         batch.begin(); font.setColor(Color.WHITE);
         font.draw(batch,world.insideMartialSchool() ? "一人一江湖  |  "+world.activeMartialSchoolInterior().orElseThrow().name() : overworldMode ? "一人一江湖  |  世界地图 · "+com.jianghu.map.OverworldExplorer.regionName(overworld.regionId()) : "一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
@@ -378,5 +399,5 @@ public final class JianghuGame extends ApplicationAdapter {
         try { interactionMessage = world.useInventoryItem(itemId); }
         catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
     }
-    @Override public void dispose() { shapes.dispose(); batch.dispose(); font.dispose(); }
+    @Override public void dispose() { shapes.dispose(); batch.dispose(); font.dispose(); if (artAssets != null) artAssets.close(); }
 }
