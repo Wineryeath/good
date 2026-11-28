@@ -74,21 +74,21 @@ public final class GameWorld {
     /** 付费向江湖师友求教一门武学流派；已学会的流派不会重复收费。 */
     public String learnMartialStyle(com.jianghu.combat.MartialArtStyle style, long feeInWen) {
         if (style == null || feeInWen < 0) throw new IllegalArgumentException("武学或学费无效");
-        if (player.learnedStyles().contains(style)) return "你已经掌握" + style.name() + "。";
+        if (player.learnedStyles().contains(style)) return "你已经掌握" + style.displayName() + "。";
         if (player.moneyInWen() < feeInWen) throw new IllegalStateException("银钱不足，无法拜师学艺");
         player.addMoney(-feeInWen); player.learnStyle(style);
-        return "你付出" + feeInWen + "文，习得" + style.name() + "：" + style.description();
+        return "你付出" + feeInWen + "文，习得" + style.displayName() + "：" + style.description();
     }
     /** 学习招式前必须先掌握其所属流派；招式一经习得永久保留。 */
     public String learnMartialTechnique(String techniqueId, long feeInWen) {
         var technique = com.jianghu.combat.MartialTechnique.find(techniqueId)
             .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
-        if (player.knowsTechnique(techniqueId)) return "你已经学会" + technique.name() + "。";
+        if (player.knowsTechnique(techniqueId)) return "你已经学会" + technique.displayName() + "。";
         if (!player.learnedStyles().contains(technique.style())) throw new IllegalStateException("先习得" + technique.style().name() + "再来求教此招");
         if (feeInWen < 0) throw new IllegalArgumentException("学费不能为负");
         if (player.moneyInWen() < feeInWen) throw new IllegalStateException("银钱不足，无法学习招式");
         player.addMoney(-feeInWen); player.learnTechnique(techniqueId);
-        return "你付出" + feeInWen + "文，学会" + technique.name() + "：" + technique.description();
+        return "你付出" + feeInWen + "文，学会" + technique.displayName() + "：" + technique.description();
     }
     /** 静坐吐纳半个时辰，恢复内力与少量体力；战斗中不可运功。 */
     public String meditate() {
