@@ -38,6 +38,19 @@ class PlayerSnapshotTest {
         assertTrue(restored.equipment().containsKey(EquipmentItem.Slot.WEAPON));
     }
 
+    @Test void playerSaveServicePersistsAndRestoresSnapshot() throws Exception {
+        var directory = java.nio.file.Files.createTempDirectory("jianghu-player-save");
+        var file = directory.resolve("slot-1.sav");
+        Player player = new Player("存档旅人"); player.addItem("herb", 7); player.moveTo(11, 6);
+        player.changeReputation(9);
+        var service = new com.jianghu.save.PlayerSaveService();
+        service.save(file, player);
+        Player loaded = service.load(file);
+        assertEquals(player.name(), loaded.name()); assertEquals(player.inventory(), loaded.inventory());
+        assertEquals(player.x(), loaded.x()); assertEquals(player.y(), loaded.y());
+        assertEquals(player.reputation(), loaded.reputation());
+        java.nio.file.Files.deleteIfExists(file); java.nio.file.Files.deleteIfExists(directory);
+    }
     @Test void snapshotRejectsInvalidPlayerState() {
         assertThrows(IllegalArgumentException.class, () -> new PlayerSnapshot("", 100, 100, 0, 0, 0, 0,
             0, 0, 0, java.util.Map.of(), java.util.Map.of(), 0, 1, 100, MartialArtStyle.FIST,
