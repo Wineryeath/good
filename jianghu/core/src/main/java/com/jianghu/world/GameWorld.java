@@ -14,6 +14,8 @@ import com.jianghu.business.BusinessType;
 import com.jianghu.business.NpcBusiness;
 import com.jianghu.business.TradeGood;
 import com.jianghu.quest.Quest;
+import com.jianghu.combat.MartialMaster;
+import com.jianghu.combat.MartialArtStyle;
 import com.jianghu.business.MarketPriceBook;
 import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarket;
@@ -46,6 +48,9 @@ public final class GameWorld {
     private final Map<String, TradeCaravan> caravans = new LinkedHashMap<>();
     private long lastBusinessDay;
     private com.jianghu.combat.CombatEncounter activeCombat;
+    private final List<MartialMaster> martialMasters = List.of(new MartialMaster(
+        "master-river-sword", "顾长风", "河畔剑师", MartialArtStyle.SWORD,
+        "cloud_sword", 120, 180, 0));
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -63,6 +68,37 @@ public final class GameWorld {
         return activeCombat;
     }
     public Optional<com.jianghu.combat.CombatEncounter> activeCombat() { return Optional.ofNullable(activeCombat); }
+    public List<MartialMaster> martialMasters() { return martialMasters; }
+    /** 返回当前可接触的师傅；师傅固定驻守河畔演武场。 */
+    public Optional<MartialMaster> nearbyMartialMaster(GameMap map) {
+        if (map == null) return Optional.empty();
+        return map.points().stream().filter(p -> p.id().equals("training-yard"))
+            .filter(p -> p.canInteractFrom(player.x(), player.y()))
+            .findFirst().flatMap(p -> martialMasters.stream().findFirst());
+    }
+    public String talkToMartialMaster(GameMap map) {
+        MartialMaster master = nearbyMartialMaster(map)
+            .orElseThrow(() -> new IllegalStateException("请先前往河畔演武场寻找武学师傅"));
+        return master.name() + "（" + master.title() + "）说道：剑法重在心静意定。拜师需 "
+            + master.styleFeeInWen() + " 文，进阶招式需 " + master.techniqueFeeInWen()
+            + " 文。当前声望门槛：" + master.requiredReputation() + "。按 M 拜师，按 N 学招。";
+    }
+    public String learnFromMartialMaster(GameMap map) {
+        MartialMaster master = nearbyMartialMaster(map)
+            .orElseThrow(() -> new IllegalStateException("附近没有武学师傅"));
+        if (player.reputation() < master.requiredReputation())
+            throw new IllegalStateException("声望不足，师傅暂不收徒");
+        String result = learnMartialStyle(master.style(), master.styleFeeInWen());
+        player.selectStyle(master.style());
+        return result + " 当前已切换为" + master.style().displayName() + "。";
+    }
+    public String learnTechniqueFromMartialMaster(GameMap map) {
+        MartialMaster master = nearbyMartialMaster(map)
+            .orElseThrow(() -> new IllegalStateException("附近没有武学师傅"));
+        if (!player.learnedStyles().contains(master.style()))
+            throw new IllegalStateException("先向师傅拜师，习得" + master.style().displayName());
+        return learnMartialTechnique(master.techniqueId(), master.techniqueFeeInWen());
+    }
     public String combatAttack() {
         if (activeCombat == null) throw new IllegalStateException("当前没有进行中的战斗");
         return activeCombat.playerAttack();
