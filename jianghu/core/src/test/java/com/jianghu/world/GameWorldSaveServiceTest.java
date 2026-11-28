@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class GameWorldSaveServiceTest {
     private GameWorld world(long day, int minute) {
         return new GameWorld(new Player("存档侠客"), new WorldClock(day, minute), List.of(
-            new Npc("npc-inn", "周掌柜", "客栈老板", List.of(new Npc.Schedule(6, 20, "inn", 0)), 0)));
+            new Npc("npc-inn", "周掌柜", "客栈老板", List.of(new Npc.Schedule(6, 20, "inn", 0)), 0),
+            new Npc("npc-worker", "阿福", "伙计", List.of(new Npc.Schedule(6, 20, "inn", 0)), 0)));
     }
     @Test void worldSaveRestoresPlayerNpcLifeRelationshipsAndCalendar() throws Exception {
         GameWorld original = world(2, 350);
@@ -22,7 +23,7 @@ class GameWorldSaveServiceTest {
         original.life("npc-inn").remember("收到旅人赠予的草药");
         original.relationship("npc-inn").talk(true); original.relationship("npc-inn").changeTrust(4);
         var inn = original.foundNpcBusiness("npc-inn", "family-inn", "周家客栈", com.jianghu.business.BusinessType.INN, 120, 15, 8, 3000);
-        inn.restock(com.jianghu.business.TradeGood.MEAL, 4, 25); inn.hire("@player");
+        inn.restock(com.jianghu.business.TradeGood.MEAL, 4, 25); inn.hire("npc-worker");
         original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).buy(7, com.jianghu.business.TradeGood.HERB);
         original.advanceMinutes(70);
         var directory = Files.createTempDirectory("jianghu-world-save");
