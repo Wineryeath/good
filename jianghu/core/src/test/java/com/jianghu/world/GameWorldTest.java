@@ -159,4 +159,34 @@ class GameWorldTest {
         assertEquals(1,world.life("npc").daysLivedThisYear());
     }
 
+    @Test void familyMemberInheritsEstateAfterNpcDeath() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(8,10*60),List.of(parent,child));
+        world.addNpcChild("parent","child");
+        long estate = world.life("parent").moneyInWen();
+        long childBefore = world.life("child").moneyInWen();
+        world.recordNpcDeath("parent","寿终正寝");
+        assertFalse(world.life("parent").alive());
+        assertTrue(world.npcPositions(GameMap.starterTown()).isEmpty());
+        assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(1).type());
+        assertEquals(estate,world.inheritNpcEstate("parent","child"));
+        assertEquals(childBefore + estate,world.life("child").moneyInWen());
+        assertEquals(NpcFamilyRegistry.EventType.INHERITANCE,world.familyRegistry().events().get(2).type());
+        assertTrue(world.life("child").memories().stream().anyMatch(m -> m.contains("继承阿兰")));
+    }
+
+    @Test void unrelatedNpcCannotInheritAndDuplicateBirthIsIdempotent() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        Npc stranger = new Npc("stranger","路人","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(parent,child,stranger));
+        world.addNpcChild("parent","child");
+        int eventCount = world.familyRegistry().events().size();
+        world.addNpcChild("parent","child");
+        assertEquals(eventCount,world.familyRegistry().events().size());
+        world.recordNpcDeath("parent","病逝");
+        assertThrows(IllegalArgumentException.class,() -> world.inheritNpcEstate("parent","stranger"));
+    }
+
 }
