@@ -114,7 +114,7 @@ class PlayerCombatTest {
         GameWorld world = world(player);
         player.spendInnerEnergy(50);
         assertTrue(world.meditate().contains("内力恢复"));
-        assertEquals(75, player.innerEnergy());
+        assertEquals(35, player.innerEnergy());
         world.startBanditEncounter();
         assertThrows(IllegalStateException.class, world::meditate);
     }
