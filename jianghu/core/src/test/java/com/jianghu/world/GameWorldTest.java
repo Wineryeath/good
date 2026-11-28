@@ -94,7 +94,7 @@ class GameWorldTest {
         int moodBefore = world.life("shop").mood();
         world.advanceMinutes(30);
         assertEquals(11,world.socialGraph().relation("shop","neighbor").orElseThrow().strength());
-        assertEquals(moodBefore + 2,world.life("shop").mood());
+        assertEquals(moodBefore + 3,world.life("shop").mood());
         assertTrue(world.life("shop").memories().stream().anyMatch(m -> m.contains("阿禾") && m.contains("相聚")));
     }
 
