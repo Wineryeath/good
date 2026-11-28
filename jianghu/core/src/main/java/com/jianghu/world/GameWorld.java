@@ -205,8 +205,10 @@ public final class GameWorld {
         for (NpcBusiness business : businesses.values()) businessSnapshots.put(business.id(), com.jianghu.business.NpcBusinessSnapshot.capture(business));
         Map<MarketRegion, com.jianghu.business.RegionalMarketSnapshot> marketSnapshots = new EnumMap<>(MarketRegion.class);
         for (var entry : regionalMarkets.entrySet()) marketSnapshots.put(entry.getKey(), com.jianghu.business.RegionalMarketSnapshot.capture(entry.getValue()));
+        Map<String, com.jianghu.quest.QuestSnapshot> questSnapshots = new LinkedHashMap<>();
+        for (var entry : playerQuests.entrySet()) questSnapshots.put(entry.getKey(), com.jianghu.quest.QuestSnapshot.capture(entry.getValue()));
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
-            weather, lives, bonds, businessSnapshots, marketSnapshots, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
             independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
@@ -225,6 +227,10 @@ public final class GameWorld {
         if (!snapshot.markets().keySet().equals(java.util.EnumSet.allOf(MarketRegion.class)))
             throw new IllegalArgumentException("存档区域市场名册不完整");
         for (var entry : snapshot.markets().entrySet()) regionalMarkets.get(entry.getKey()).restoreSnapshot(entry.getValue());
+        if (!snapshot.quests().keySet().equals(playerQuests.keySet()))
+            throw new IllegalArgumentException("存档任务列表与当前场景不一致");
+        for (var entry : snapshot.quests().entrySet()) playerQuests.get(entry.getKey()).restoreSnapshot(entry.getValue());
+        questRewards.clear(); questRewards.putAll(snapshot.questRewards());
         businesses.clear();
         for (var entry : snapshot.businesses().entrySet()) {
             var b = entry.getValue();
