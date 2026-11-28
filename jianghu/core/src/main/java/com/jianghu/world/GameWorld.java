@@ -30,6 +30,7 @@ public final class GameWorld {
     private long lastAgedDay;
     private final java.util.Set<String> deathRecorded = new java.util.LinkedHashSet<>();
     private final Map<String, String> independentHouseholds = new LinkedHashMap<>();
+    private final Map<String, Integer> courtshipDays = new LinkedHashMap<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -91,7 +92,7 @@ public final class GameWorld {
         for (int i = 0; i < minutes; i++) {
             long previousDay = clock.day();
             clock.advance(1);
-            if (clock.day() != previousDay) settleNpcAging();
+            if (clock.day() != previousDay) { settleNpcAging(); settleNpcRomance(); }
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
                     if (life(npc.id()).alive()) life(npc.id()).passHour(npc.role(), locationFor(npc, clock.hour()), clock.hour());
@@ -126,6 +127,52 @@ public final class GameWorld {
         }
     }
 
+
+
+    /** 每个游戏日结算自主婚恋：成年单身 NPC 的互相信任关系在共同生活中逐渐发展。 */
+    private void settleNpcRomance() {
+        for (int i = 0; i < npcs.size(); i++) {
+            Npc first = npcs.get(i);
+            NpcLifeState firstLife = life(first.id());
+            if (!firstLife.alive() || firstLife.ageYears() < 18
+                    || familyRegistry.spouseOf(first.id()).isPresent()) continue;
+            for (int j = i + 1; j < npcs.size(); j++) {
+                Npc second = npcs.get(j);
+                NpcLifeState secondLife = life(second.id());
+                if (!secondLife.alive() || secondLife.ageYears() < 18
+                        || familyRegistry.spouseOf(second.id()).isPresent()) continue;
+                if (familyRegistry.familyOf(first.id()).contains(second.id())
+                        || familyRegistry.familyOf(second.id()).contains(first.id())) continue;
+                String key = first.id() + "|" + second.id();
+                var forward = socialGraph.relation(first.id(), second.id());
+                var reverse = socialGraph.relation(second.id(), first.id());
+                boolean mutualTrust = forward.isPresent() && reverse.isPresent()
+                    && forward.get().type() == NpcSocialGraph.RelationType.FRIEND
+                    && reverse.get().type() == NpcSocialGraph.RelationType.FRIEND
+                    && forward.get().strength() >= 60 && reverse.get().strength() >= 60;
+                boolean together = locationFor(first, 12).equals(locationFor(second, 12));
+                if (!mutualTrust || !together) {
+                    courtshipDays.remove(key);
+                    continue;
+                }
+                int days = courtshipDays.merge(key, 1, Integer::sum);
+                firstLife.remember("与" + second.name() + "相处融洽（第 " + days + " 日）");
+                secondLife.remember("与" + first.name() + "相处融洽（第 " + days + " 日）");
+                if (days >= 30) {
+                    marryNpcs(first.id(), second.id());
+                    courtshipDays.remove(key);
+                }
+            }
+        }
+    }
+
+    public int courtshipDays(String firstNpcId, String secondNpcId) {
+        requireNpc(firstNpcId);
+        requireNpc(secondNpcId);
+        String key = npcs.indexOf(requireNpc(firstNpcId)) < npcs.indexOf(requireNpc(secondNpcId))
+            ? firstNpcId + "|" + secondNpcId : secondNpcId + "|" + firstNpcId;
+        return courtshipDays.getOrDefault(key, 0);
+    }
 
     /** 成年 NPC 可建立独立居所；仅在原日程回家时改为返回新居。 */
     public void establishIndependentHousehold(String npcId, String householdPlace) {
