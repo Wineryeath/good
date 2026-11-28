@@ -3,6 +3,7 @@ package com.jianghu.world;
 import com.jianghu.character.Player;
 import com.jianghu.business.BusinessType;
 import com.jianghu.business.TradeGood;
+import com.jianghu.business.MarketRegion;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.npc.NpcFamilyRegistry;
@@ -468,6 +469,19 @@ class GameWorldTest {
         assertTrue(sale.revenueInWen() > 0);
         assertEquals(0, farm.stockOf(TradeGood.GRAIN));
         assertThrows(IllegalArgumentException.class, () -> world.restockNpcBusiness("owner", "farm", TradeGood.MEAL, 1));
+    }
+
+    @Test void regionalTradeUsesLocalSupplyAndUpdatesTheMarket() {
+        Npc owner = new Npc("owner", "掌柜", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner));
+        var inn = world.foundNpcBusiness("owner", "inn", "听雨客栈", BusinessType.INN, 100, 0, 0, 10000);
+        long initialPrice = world.marketPrice(TradeGood.TEA, MarketRegion.JIANGNAN);
+        assertTrue(world.marketPrice(TradeGood.TEA, MarketRegion.BEILING) > initialPrice);
+        world.restockNpcBusiness("owner", "inn", TradeGood.TEA, 20, MarketRegion.JIANGNAN);
+        assertEquals(180, world.regionalMarket(MarketRegion.JIANGNAN).stockOf(TradeGood.TEA));
+        var receipt = world.sellNpcBusinessGoods("owner", "inn", TradeGood.TEA, 20, MarketRegion.BEILING);
+        assertEquals(20, receipt.quantity());
+        assertEquals(170, world.regionalMarket(MarketRegion.BEILING).stockOf(TradeGood.TEA));
     }
 
 }
