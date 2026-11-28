@@ -48,6 +48,8 @@ public final class GameWorld {
     private final Map<String, TradeCaravan> caravans = new LinkedHashMap<>();
     private long lastBusinessDay;
     private com.jianghu.combat.CombatEncounter activeCombat;
+    private final Map<String, Long> masterTrainingDays = new LinkedHashMap<>();
+    private final Map<String, Integer> masterFavor = new LinkedHashMap<>();
     private final List<MartialMaster> martialMasters = List.of(new MartialMaster(
         "master-river-sword", "顾长风", "河畔剑师", MartialArtStyle.SWORD,
         "cloud_sword", 120, 180, 0));
@@ -91,6 +93,37 @@ public final class GameWorld {
         String result = learnMartialStyle(master.style(), master.styleFeeInWen());
         player.selectStyle(master.style());
         return result + " 当前已切换为" + master.style().displayName() + "。";
+    }
+    public int martialMasterFavor(String masterId) { return masterFavor.getOrDefault(masterId, 0); }
+    /** 每位师傅每天只安排一次正式训练；训练消耗体力与一小时，积累武学经验及师门信任。 */
+    public String trainWithMartialMaster(GameMap map) {
+        MartialMaster master = nearbyMartialMaster(map)
+            .orElseThrow(() -> new IllegalStateException("请先前往河畔演武场找师傅练功"));
+        if (!player.learnedStyles().contains(master.style()))
+            throw new IllegalStateException("先拜师习得" + master.style().displayName() + "，师傅才肯指点");
+        if (masterTrainingDays.getOrDefault(master.id(), -1L) == clock.day())
+            throw new IllegalStateException("今日已经练过功了，明日再来接受指点");
+        if (!player.spendStamina(12)) throw new IllegalStateException("体力不足，无法完成一轮练功");
+        masterTrainingDays.put(master.id(), clock.day());
+        int favor = masterFavor.merge(master.id(), 1, Integer::sum);
+        int levels = player.gainMartialExperience(20);
+        advanceMinutes(60);
+        return "你随" + master.name() + "练剑一个时辰，武学经验 +20，师门信任 " + favor
+            + "/3。" + (levels > 0 ? "境界提升至第" + player.martialLevel() + "重！" : "");
+    }
+    /** 与师傅建立三日练功默契后，可付费学习进阶剑招。 */
+    public String learnAdvancedTechniqueFromMartialMaster(GameMap map) {
+        MartialMaster master = nearbyMartialMaster(map)
+            .orElseThrow(() -> new IllegalStateException("附近没有武学师傅"));
+        if (!player.learnedStyles().contains(master.style()) || !player.knowsTechnique(master.techniqueId()))
+            throw new IllegalStateException("先拜师并学会入门剑式");
+        if (martialMasterFavor(master.id()) < 3)
+            throw new IllegalStateException("师傅认为火候未到；再完成 " + (3 - martialMasterFavor(master.id())) + " 次练功");
+        if (player.knowsTechnique("cloud_piercing")) return "你已经学会穿云破月。";
+        if (player.moneyInWen() < 360) throw new IllegalStateException("进阶剑招学费需要 360 文");
+        player.addMoney(-360);
+        player.learnTechnique("cloud_piercing");
+        return "顾长风传你进阶剑招「穿云破月」：凝全身劲力于剑尖，一线破空。";
     }
     public String learnTechniqueFromMartialMaster(GameMap map) {
         MartialMaster master = nearbyMartialMaster(map)
