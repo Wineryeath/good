@@ -511,6 +511,17 @@ public final class GameWorld {
         caravan.addCrew(crewNpcId, combatStrength);
         life(crewNpcId).remember("加入商队" + caravanId + "，随队前往" + caravan.destination().displayName());
     }
+    /** 玩家亲自加入商队押运；出发前消耗体力，并以声望影响护卫战力。 */
+    public void joinPlayerTradeCaravan(String caravanId) {
+        TradeCaravan caravan = requireCaravan(caravanId);
+        if (caravan.state() != TradeCaravan.State.PREPARING) throw new IllegalStateException("商队已经出发，无法中途加入");
+        if (caravan.crew().contains("@player")) throw new IllegalStateException("玩家已经加入这支商队");
+        if (!player.spendStamina(10)) throw new IllegalStateException("体力不足，无法加入押运");
+        int strength = Math.max(5, Math.min(35, 15 + player.reputation() / 5));
+        try { caravan.addCrew("@player", strength); }
+        catch (RuntimeException ex) { player.recoverStamina(10); throw ex; }
+    }
+
     /** 在出发地采购货物并装车，货款由领队个人承担。 */
     public long loadTradeCaravan(String ownerNpcId, String caravanId, TradeGood good, int quantity) {
         TradeCaravan caravan = requireCaravan(caravanId);
@@ -550,7 +561,9 @@ public final class GameWorld {
     private void settleArrivedCaravan(TradeCaravan caravan) {
         Map<TradeGood, TradeCaravan.Cargo> cargo = caravan.complete();
         for (Map.Entry<String, Integer> wound : caravan.crewWounds().entrySet()) {
-            if (life(wound.getKey()).alive()) {
+            if (wound.getKey().equals("@player")) {
+                player.changeHealth(-wound.getValue());
+            } else if (life(wound.getKey()).alive()) {
                 injureNpc(wound.getKey(), wound.getValue(), "商队" + caravan.id() + "途中遭遇劫匪");
                 life(wound.getKey()).remember("商队遇袭受伤，健康损失 " + wound.getValue() + " 点");
             }
@@ -565,7 +578,12 @@ public final class GameWorld {
         long costTotal = cargo.values().stream().mapToLong(TradeCaravan.Cargo::totalCostInWen).sum();
         long profit = revenueTotal - costTotal;
         String report = "商队" + caravan.id() + "抵达" + caravan.destination().displayName() + "，销售收入 " + revenueTotal + " 文，净收益 " + profit + " 文，途中损失货物 " + caravan.lostCargoQuantity() + " 件";
-        for (String memberId : caravan.crew()) if (life(memberId).alive()) life(memberId).remember(report);
+        for (String memberId : caravan.crew()) {
+            if (memberId.equals("@player")) {
+                if (revenueTotal > 0) player.changeReputation(2);
+                player.recoverStamina(5);
+            } else if (life(memberId).alive()) life(memberId).remember(report);
+        }
     }
     /** 用产业金库升级经营规模，最高五级。 */
     public long upgradeNpcBusiness(String ownerNpcId, String businessId) {
