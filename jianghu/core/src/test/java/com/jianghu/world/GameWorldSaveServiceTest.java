@@ -22,6 +22,8 @@ class GameWorldSaveServiceTest {
         GameWorld original = world(2, 350);
         original.player().changeHealth(-18); original.player().addItem("herb", 5); original.player().moveTo(12, 7);
         original.overworld().move(1, 0);
+        original.player().moveTo(9, 11);
+        assertTrue(original.interactWithNearbyPoint(com.jianghu.map.GameMap.starterTown()).orElseThrow().contains("采得草药"));
         original.setWeather("连绵细雨");
         original.acceptQuest("herb-delivery"); original.quest("herb-delivery").orElseThrow().record("herb", 1);
         original.life("npc-inn").changeMood(13); original.life("npc-inn").creditMoney(260);
@@ -51,6 +53,8 @@ class GameWorldSaveServiceTest {
         assertEquals(original.clock().day(), restored.clock().day());
         assertEquals(original.clock().minuteOfDay(), restored.clock().minuteOfDay());
         assertEquals(original.weather(), restored.weather());
+        assertEquals(original.snapshot().resourceHarvestDays(), restored.snapshot().resourceHarvestDays());
+        assertTrue(restored.interactWithNearbyPoint(com.jianghu.map.GameMap.starterTown()).orElseThrow().contains("今日已经采过"));
         assertEquals(original.life("npc-inn").mood(), restored.life("npc-inn").mood());
         assertEquals(original.life("npc-inn").moneyInWen(), restored.life("npc-inn").moneyInWen());
         assertEquals(original.life("npc-inn").memories(), restored.life("npc-inn").memories());
