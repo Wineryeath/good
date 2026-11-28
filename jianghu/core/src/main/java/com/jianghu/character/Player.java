@@ -30,6 +30,8 @@ public final class Player {
         stamina -= amount; return true;
     }
     public void recoverStamina(int amount) { stamina = clamp(stamina + amount); }
+    /** 战斗伤害与疗伤统一作用于玩家健康值，范围限制在 0..100。 */
+    public void changeHealth(int amount) { health = clamp(health + amount); }
     public void changeReputation(int amount) { reputation = Math.max(-100, Math.min(100, reputation + amount)); }
     public void addMoney(long wen) { if (money + wen < 0) throw new IllegalArgumentException("银钱不足"); money += wen; }
     public void addItem(String id, int count) {
