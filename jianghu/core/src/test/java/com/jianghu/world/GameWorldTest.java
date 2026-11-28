@@ -121,6 +121,8 @@ class GameWorldTest {
         assertEquals(85,world.socialGraph().relation("father","child").orElseThrow().strength());
         assertTrue(world.life("mother").memories().stream().anyMatch(m -> m.contains("结为夫妻")));
         assertTrue(world.life("child").memories().stream().anyMatch(m -> m.contains("阿兰")));
+        assertEquals(0, world.life("child").ageYears());
+        assertEquals(com.jianghu.npc.NpcLifeState.LifeStage.CHILD, world.life("child").lifeStage());
     }
 
     @Test void npcCannotHaveTwoSpouses() {
@@ -146,6 +148,15 @@ class GameWorldTest {
             world.socialGraph().relation("child","parent").orElseThrow().type());
         assertEquals(NpcFamilyRegistry.EventType.RECONCILIATION,world.familyRegistry().events().get(2).type());
         assertEquals(4,world.familyRegistry().events().get(0).worldDay());
+    }
+
+    @Test void crossingMidnightAdvancesNpcAgeByOneGameDay() {
+        Npc npc = new Npc("npc","老周","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(10,23*60+59),List.of(npc));
+        assertEquals(0,world.life("npc").daysLivedThisYear());
+        world.advanceMinutes(1);
+        assertEquals(11,world.clock().day());
+        assertEquals(1,world.life("npc").daysLivedThisYear());
     }
 
 }
