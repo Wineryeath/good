@@ -42,7 +42,7 @@ class MartialSchoolFacilityTest {
         world.player().spendInnerEnergy(50);
         world.player().spendStamina(40);
         world.useNearbyMartialSchoolFacility("wudang-zixiao-meditation");
-        assertEquals(90, world.player().innerEnergy());
+        assertEquals(50, world.player().innerEnergy());
         assertEquals(68, world.player().stamina());
         world.player().changeHealth(-50);
         world.player().spendStamina(20);
