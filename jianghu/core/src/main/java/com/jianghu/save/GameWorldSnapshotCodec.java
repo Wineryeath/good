@@ -34,6 +34,7 @@ public final class GameWorldSnapshotCodec {
         put(out, "world.day", s.day()); put(out, "world.minute", s.minuteOfDay()); put(out, "world.weather", b64(s.weather()));
         put(out,"world.overworld.region",s.overworldRegion().name()); put(out,"world.overworld.x",s.overworldX()); put(out,"world.overworld.y",s.overworldY());
         put(out, "world.lastAgedDay", s.lastAgedDay()); put(out, "world.lastBusinessDay", s.lastBusinessDay());
+        putLongMap(out, "world.resourceHarvestDays", s.resourceHarvestDays());
         int i = 0; out.put("world.npc.count", Integer.toString(s.npcLives().size()));
         for (var entry : s.npcLives().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
             String p = "world.npc." + i++ + "."; NpcLifeSnapshot n = entry.getValue();
@@ -175,7 +176,8 @@ public final class GameWorldSnapshotCodec {
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"),
             readSet(data,"world.schoolMemberships"), readLongMap(data,"world.schoolTrainingDays"), readIntMap(data,"world.schoolFavor"),
-            readIntMap(data,"world.schoolContribution"));
+            readIntMap(data,"world.schoolContribution"),
+            data.containsKey("world.resourceHarvestDays.count") ? readLongMap(data,"world.resourceHarvestDays") : Map.of());
     }
     private static void put(Map<String,String> m,String k,Object v){m.put(k,String.valueOf(v));}
     private static String b64(String s){return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));}
