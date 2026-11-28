@@ -5,10 +5,9 @@ AGI-X is a modular, high-autonomy AI task-execution system.
 The user provides an objective. AGI-X is designed to research, plan, execute permitted actions, verify outcomes, learn from task history, and request human input only at meaningful decision or permission boundaries.
 
 ## Project status
+This repository is the implementation base for AGI-X. Existing AGI-X work is preserved. The standalone board-game simulator **因果教廷** is available in [game/](game/).
 
-This repository is the clean implementation base for AGI-X. The existing `vigilant-eureka` project is preserved separately because it is a standalone user-activity monitor, not an AI-system foundation.
-
-The first milestone is a safe, testable orchestration core:
+The first AGI-X milestone is a safe, testable orchestration core:
 - explicit task state and bounded execution cycles
 - pluggable model and tool interfaces
 - SQLite-backed task memory
@@ -17,7 +16,16 @@ The first milestone is a safe, testable orchestration core:
 
 AGI-X does not claim unlimited intelligence or autonomous self-modification. Capability improvements must be measurable, reviewed, versioned, and reversible.
 
-## Quick start
+## 因果教廷 · 桌游模拟器
+
+A self-contained browser-based, 3–6 player hot-seat strategy game. No dependencies or build step required.
+
+- [Open the game source](game/index.html)
+- [Game rules and quick start](game/README.md)
+
+Download `game/index.html` and open it in a modern browser to play.
+
+## AGI-X quick start
 
 Requires Python 3.11+.
 
