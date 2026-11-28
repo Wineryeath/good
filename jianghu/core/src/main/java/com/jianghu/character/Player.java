@@ -17,6 +17,10 @@ public final class Player {
     public int stamina() { return stamina; }
     public int hunger() { return hunger; }
     public int thirst() { return thirst; }
+    /** 饥饿与口渴均以 0..100 表示需求强度，数值越低越舒适。 */
+    public void changeHunger(int amount) { hunger = clamp(hunger + amount); }
+    public void changeThirst(int amount) { thirst = clamp(thirst + amount); }
+    public void changeMorale(int amount) { morale = clamp(morale + amount); }
     public int morale() { return morale; }
     public int reputation() { return reputation; }
     public long moneyInWen() { return money; }
