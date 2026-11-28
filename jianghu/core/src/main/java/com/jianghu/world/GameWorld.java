@@ -58,6 +58,7 @@ public final class GameWorld {
     public void addNpcChild(String parentNpcId, String childNpcId) {
         Npc parent = requireNpc(parentNpcId);
         Npc child = requireNpc(childNpcId);
+        if (familyRegistry.parentsOf(childNpcId).contains(parentNpcId)) return;
         life(childNpcId).initializeAge(0);
         List<String> parentIds = new java.util.ArrayList<>();
         parentIds.add(parentNpcId);
@@ -91,7 +92,7 @@ public final class GameWorld {
             if (clock.day() != previousDay) settleNpcAging();
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
-                    life(npc.id()).passHour(npc.role(), npc.locationAt(clock.hour()), clock.hour());
+                    if (life(npc.id()).alive()) life(npc.id()).passHour(npc.role(), npc.locationAt(clock.hour()), clock.hour());
                 }
                 settleNpcSocialLife();
             }
@@ -104,6 +105,7 @@ public final class GameWorld {
             lastAgedDay++;
             for (Npc npc : npcs) {
                 NpcLifeState state = life(npc.id());
+                if (!state.alive()) continue;
                 if (state.passDay()) {
                     String milestone = npc.name() + " 年满 " + state.ageYears() + " 岁";
                     state.remember(milestone);
@@ -125,7 +127,7 @@ public final class GameWorld {
     }
     /** 根据当前时辰把 NPC 的日程地点解析为地图坐标。未配置地点的 NPC 暂不显示。 */
     public List<NpcPosition> npcPositions(GameMap map) {
-        return npcs.stream().map(npc -> {
+        return npcs.stream().filter(npc -> life(npc.id()).alive()).map(npc -> {
             String place = npc.locationAt(clock.hour());
             Optional<MapPoint> point = map.points().stream().filter(p -> p.id().equals(place)).findFirst();
             return point.map(p -> new NpcPosition(npc.id(), npc.name(), npc.role(), p.x(), p.y(), place)).orElse(null);
@@ -168,6 +170,33 @@ public final class GameWorld {
         life(npcId).remember("玩家曾欺骗自己：" + description);
     }
 
+
+
+    /** 记录 NPC 去世；死亡不会自动抹去其家庭谱系或社会关系历史。 */
+    public void recordNpcDeath(String npcId, String cause) {
+        Npc npc = requireNpc(npcId);
+        requireDescription(cause);
+        NpcLifeState state = life(npcId);
+        state.die();
+        state.remember("去世：" + cause);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.DEATH, List.of(npcId), clock.day(), npc.name() + " 去世：" + cause);
+    }
+
+    /** 家族成员继承逝者全部遗产；转移与事件登记作为一次操作完成。 */
+    public long inheritNpcEstate(String deceasedNpcId, String heirNpcId) {
+        Npc deceased = requireNpc(deceasedNpcId);
+        Npc heir = requireNpc(heirNpcId);
+        if (life(deceasedNpcId).alive()) throw new IllegalStateException("遗产所有者尚在人世");
+        if (!familyRegistry.familyOf(deceasedNpcId).contains(heirNpcId))
+            throw new IllegalArgumentException("继承人必须属于逝者的直系或登记家庭");
+        if (!life(heirNpcId).alive()) throw new IllegalStateException("继承人已故");
+        long amount = life(deceasedNpcId).transferWealthTo(life(heirNpcId));
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.INHERITANCE,
+            List.of(deceasedNpcId, heirNpcId), clock.day(),
+            heir.name() + " 继承 " + deceased.name() + " 的遗产 " + amount + " 文");
+        life(heirNpcId).remember("继承" + deceased.name() + "的遗产（" + amount + "文）");
+        return amount;
+    }
 
     /** 家庭成员发生冲突：谱系保留，社会关系暂时转为仇敌。 */
     public void familyConflict(String firstNpcId, String secondNpcId, String description) {
@@ -215,6 +244,7 @@ public final class GameWorld {
     /** 每个游戏日，同处一地的 NPC 会按既有关系发生一次日常互动。 */
     private void settleNpcSocialLife() {
         for (NpcSocialGraph.Bond bond : socialGraph.allRelations()) {
+            if (!life(bond.fromNpcId()).alive() || !life(bond.toNpcId()).alive()) continue;
             String pairKey = bond.fromNpcId() + "->" + bond.toNpcId();
             if (lastSocialDay.getOrDefault(pairKey, 0L) == clock.day()) continue;
             Npc from = requireNpc(bond.fromNpcId());
