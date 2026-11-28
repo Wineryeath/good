@@ -373,7 +373,7 @@ public final class GameWorld {
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
             weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots,
             familyRegistry.snapshot(), socialGraph.snapshot(), overworldExplorer.regionId(), overworldExplorer.x(), overworldExplorer.y(), lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
-            independentHouseholds, courtshipDays, masterTrainingDays, masterFavor, schoolMemberships, schoolTrainingDays, schoolFavor, schoolContribution);
+            independentHouseholds, courtshipDays, masterTrainingDays, masterFavor, schoolMemberships, schoolTrainingDays, schoolFavor, schoolContribution, resourceHarvestDays);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
     public void restoreSnapshot(GameWorldSnapshot snapshot) {
@@ -413,6 +413,7 @@ public final class GameWorld {
                 b.dailyOperatingCostInWen(), b.dailyWagePerEmployeeInWen(), b.treasuryInWen());
             restored.restoreSnapshot(b); businesses.put(entry.getKey(), restored);
         }
+        resourceHarvestDays.clear(); resourceHarvestDays.putAll(snapshot.resourceHarvestDays());
         lastAgedDay = snapshot.lastAgedDay(); lastBusinessDay = snapshot.lastBusinessDay();
         deathRecorded.clear(); deathRecorded.addAll(snapshot.deathRecorded());
         lastSocialDay.clear(); lastSocialDay.putAll(snapshot.lastSocialDay());
