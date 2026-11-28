@@ -28,6 +28,7 @@ public final class GameWorld {
     private final NpcFamilyRegistry familyRegistry;
     private final Map<String, Long> lastSocialDay = new LinkedHashMap<>();
     private long lastAgedDay;
+    private final java.util.Set<String> deathRecorded = new java.util.LinkedHashSet<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -177,9 +178,23 @@ public final class GameWorld {
         Npc npc = requireNpc(npcId);
         requireDescription(cause);
         NpcLifeState state = life(npcId);
-        state.die();
+        if (deathRecorded.contains(npcId)) throw new IllegalStateException("NPC 去世事件已登记");
+        if (state.alive()) state.die();
+        if (state.health() != 0) throw new IllegalStateException("NPC 健康状态异常");
+        deathRecorded.add(npcId);
         state.remember("去世：" + cause);
         familyRegistry.recordEvent(NpcFamilyRegistry.EventType.DEATH, List.of(npcId), clock.day(), npc.name() + " 去世：" + cause);
+    }
+
+
+    /** NPC 遭受伤害；健康降至零时自动登记死亡事件。 */
+    public void injureNpc(String npcId, int damage, String cause) {
+        requireNpc(npcId);
+        if (damage <= 0) throw new IllegalArgumentException("伤害必须为正数");
+        requireDescription(cause);
+        NpcLifeState state = life(npcId);
+        state.changeHealth(-damage);
+        if (!state.alive()) recordNpcDeath(npcId, cause);
     }
 
     /** 家族成员继承逝者全部遗产；转移与事件登记作为一次操作完成。 */
