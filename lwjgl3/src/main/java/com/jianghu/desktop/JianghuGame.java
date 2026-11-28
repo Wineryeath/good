@@ -49,7 +49,7 @@ public final class JianghuGame extends ApplicationAdapter {
             if (dx != 0 || dy != 0) {
                 int nx = world.player().x() + dx;
                 int ny = world.player().y() + dy;
-                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); world.clock().advance(2); }
+                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); world.advanceMinutes(2); }
                 moveCooldown = .12f;
             }
         }
