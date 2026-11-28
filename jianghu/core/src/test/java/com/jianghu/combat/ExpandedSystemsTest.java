@@ -2,6 +2,11 @@ package com.jianghu.combat;
 
 import com.jianghu.map.OverworldRegion;
 import com.jianghu.map.TerrainKind;
+import com.jianghu.map.OverworldRegionCatalog;
+import com.jianghu.save.GameSaveStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,6 +35,20 @@ class ExpandedSystemsTest {
         assertTrue(combat.avoidsIncomingDamage());
         combat.update(0.6f); assertTrue(combat.perform(CombatAction.BLOCK, 100).accepted());
         assertTrue(combat.blocksIncomingDamage());
+    }
+    @Test void catalogBuildsSixLargeDistinctRegions() {
+        var regions = OverworldRegionCatalog.all();
+        assertEquals(6, regions.size());
+        assertEquals(64, regions.get(OverworldRegion.RegionId.JIANGNAN).width());
+        assertTrue(regions.get(OverworldRegion.RegionId.NORTHERN_RIDGE).terrainAt(10, 10) != null);
+    }
+    @Test void saveStoreRoundTripsVersionedStateAtomically() throws Exception {
+        Path file = Files.createTempDirectory("jianghu-save-test").resolve("slot-1.sav");
+        GameSaveStore store = new GameSaveStore();
+        store.save(file, Map.of("player.name", "行走江湖", "world.day", "12", "market.jiangnan.herb", "87"));
+        assertEquals("行走江湖", store.load(file).get("player.name"));
+        assertEquals("12", store.load(file).get("world.day"));
+        Files.deleteIfExists(file); Files.deleteIfExists(file.getParent());
     }
     @Test void martialSchoolsAreDistinctAndDiscoverable() {
         assertEquals(4, MartialSchool.all().size());
