@@ -45,7 +45,8 @@ public final class GameMap {
             new MapPoint("river-hut","河边渔棚",MapPoint.Kind.LANDMARK,13,10,0),
             new MapPoint("old-fisher","陆老七",MapPoint.Kind.NPC,13,7,1),
             new MapPoint("herb-bank-01","河岸草药",MapPoint.Kind.RESOURCE,9,11,0),
-            new MapPoint("bridge-stone","石拱桥",MapPoint.Kind.LANDMARK,11,8,1)
+            new MapPoint("bridge-stone","石拱桥",MapPoint.Kind.LANDMARK,11,8,1),
+            new MapPoint("training-yard","河畔演武场",MapPoint.Kind.NPC,6,13,1)
         ));
     }
 }
