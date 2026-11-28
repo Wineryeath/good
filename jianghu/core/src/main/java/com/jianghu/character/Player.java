@@ -11,6 +11,8 @@ public final class Player {
     private int x = 9, y = 9;
     private final Map<String, Integer> inventory = new LinkedHashMap<>();
     private final Map<com.jianghu.item.EquipmentItem.Slot, String> equipment = new java.util.EnumMap<>(com.jianghu.item.EquipmentItem.Slot.class);
+    private int martialExperience;
+    private int martialLevel = 1;
 
     public Player(String name) { this.name = name == null || name.isBlank() ? "无名旅人" : name; }
     public String name() { return name; }
@@ -29,6 +31,21 @@ public final class Player {
     public int y() { return y; }
     public Map<String,Integer> inventory() { return Collections.unmodifiableMap(inventory); }
     public Map<com.jianghu.item.EquipmentItem.Slot, String> equipment() { return Collections.unmodifiableMap(equipment); }
+    public int martialExperience() { return martialExperience; }
+    public int martialLevel() { return martialLevel; }
+    public int martialPower() { return martialLevel * 2; }
+    /** 武学经验每满百点提升一重境界，境界提升会增强基础攻击。 */
+    public int gainMartialExperience(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("武学经验不能为负");
+        martialExperience += amount;
+        int levels = 0;
+        while (martialExperience >= martialLevel * 100 && martialLevel < 10) {
+            martialExperience -= martialLevel * 100;
+            martialLevel++;
+            levels++;
+        }
+        return levels;
+    }
     public int attackPower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::attack).sum(); }
     public int defensePower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::defense).sum(); }
     /** 装备时自动将旧装备放回背包；新装备只有在成功扣除库存后才替换。 */
