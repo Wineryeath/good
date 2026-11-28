@@ -97,6 +97,7 @@ public final class NpcLifeState {
     }
     public int health() { return health; }
     public boolean alive() { return alive; }
+    public boolean estateTransferred() { return estateTransferred; }
     public boolean sick() { return illness != null; }
     public String illness() { return illness; }
     public int illnessSeverity() { return illnessSeverity; }
@@ -169,5 +170,15 @@ public final class NpcLifeState {
     }
     public boolean remembers(String event) { return memories.contains(event); }
     public void changeMood(int amount) { mood = clamp(mood + amount); }
+    /** 从完整快照恢复 NPC 生活状态，保留实例身份供世界关系引用。 */
+    public void restoreSnapshot(NpcLifeSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("NPC 快照不能为空");
+        ageYears = snapshot.ageYears(); daysLivedThisYear = snapshot.daysLivedThisYear(); ageInitialized = snapshot.ageInitialized();
+        hunger = snapshot.hunger(); energy = snapshot.energy(); mood = snapshot.mood(); education = snapshot.education();
+        profession = snapshot.profession(); vocationalTraining.clear(); vocationalTraining.putAll(snapshot.vocationalTraining());
+        moneyInWen = snapshot.moneyInWen(); health = snapshot.health(); alive = snapshot.alive();
+        estateTransferred = snapshot.estateTransferred(); illness = snapshot.illness(); illnessSeverity = snapshot.illnessSeverity();
+        memories.clear(); memories.addAll(snapshot.memories());
+    }
     private static int clamp(int value) { return Math.max(0, Math.min(100, value)); }
 }
