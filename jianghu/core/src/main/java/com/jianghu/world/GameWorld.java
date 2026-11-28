@@ -13,6 +13,7 @@ import com.jianghu.social.NpcSocialGraph;
 import com.jianghu.business.BusinessType;
 import com.jianghu.business.NpcBusiness;
 import com.jianghu.business.TradeGood;
+import com.jianghu.quest.Quest;
 import com.jianghu.business.MarketPriceBook;
 import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarket;
@@ -752,7 +753,7 @@ public final class GameWorld {
         return Optional.of(switch (point.kind()) {
             case RESOURCE -> harvestResource(point);
             case INN -> restAtInn(point);
-            case MARKET -> "乌篷集市：各地商贩往来，可在此了解行情、买卖货物。";
+            case MARKET -> "乌篷集市：草药 " + marketPrice(TradeGood.HERB) + " 文/份，茶叶 " + marketPrice(TradeGood.TEA) + " 文/份，熟食 " + marketPrice(TradeGood.MEAL) + " 文/份。按 B 购买草药，按 V 出售草药。";
             case LANDMARK -> point.name() + "：河风拂面，远处传来市井人声。";
             case NPC -> "这里是人物活动地点，按 E 与附近的人交谈。";
             case EXIT -> "道路通向镇外，新的旅途还在前方。";
@@ -760,11 +761,92 @@ public final class GameWorld {
     }
 
     private final Map<String, Long> resourceHarvestDays = new LinkedHashMap<>();
+    private final Map<String, Quest> playerQuests = new LinkedHashMap<>();
+    private final Map<String, Long> questRewards = new LinkedHashMap<>();
+    /** 在集市购买商品；先验证余额和库存，再一次性结算银钱与背包。 */
+    public long buyFromMarket(GameMap map, TradeGood good, int quantity) {
+        requireMarketAccess(map);
+        requireTradeQuantity(quantity);
+        long unitPrice = marketPrice(good);
+        long cost = Math.multiplyExact(unitPrice, quantity);
+        if (player.moneyInWen() < cost) throw new IllegalStateException("银钱不足，无法购买");
+        RegionalMarket market = requireMarket(MarketRegion.JIANGNAN);
+        market.buy(quantity, good);
+        try { player.addMoney(-cost); player.addItem(itemId(good), quantity); }
+        catch (RuntimeException ex) { market.sell(quantity, good); throw ex; }
+        return cost;
+    }
+
+    /** 将背包货物卖给集市；玩家按当日市价的九成成交。 */
+    public long sellToMarket(GameMap map, TradeGood good, int quantity) {
+        requireMarketAccess(map);
+        requireTradeQuantity(quantity);
+        String id = itemId(good);
+        if (player.inventory().getOrDefault(id, 0) < quantity) throw new IllegalStateException("背包货物不足");
+        long unitPrice = Math.max(1, marketPrice(good) * 90 / 100);
+        long revenue = Math.multiplyExact(unitPrice, quantity);
+        if (!player.removeItem(id, quantity)) throw new IllegalStateException("背包货物不足");
+        requireMarket(MarketRegion.JIANGNAN).sell(quantity, good);
+        player.addMoney(revenue);
+        return revenue;
+    }
+
+    private void requireMarketAccess(GameMap map) {
+        if (map == null || map.nearestInteractable(player.x(), player.y())
+                .filter(point -> point.kind() == MapPoint.Kind.MARKET).isEmpty())
+            throw new IllegalStateException("请先走到乌篷集市附近再交易");
+    }
+    private static void requireTradeQuantity(int quantity) {
+        if (quantity <= 0) throw new IllegalArgumentException("交易数量必须为正数");
+    }
+    private static String itemId(TradeGood good) {
+        if (good == null) throw new IllegalArgumentException("商品不能为空");
+        return switch (good) {
+            case MEAL -> "meal"; case TEA -> "tea"; case HERB -> "herb";
+            case MEDICINE -> "medicine"; case GRAIN -> "grain";
+            case VEGETABLE -> "vegetable"; case FISH -> "fish";
+        };
+    }
+
+    /** 登记可交付物品的委托。任务目标键使用背包物品 ID，奖励单位为文。 */
+    public void offerQuest(Quest quest, long rewardInWen) {
+        if (quest == null || rewardInWen <= 0) throw new IllegalArgumentException("任务或奖励无效");
+        if (playerQuests.putIfAbsent(quest.id(), quest) != null) throw new IllegalArgumentException("任务编号重复");
+        questRewards.put(quest.id(), rewardInWen);
+    }
+    public Optional<Quest> quest(String questId) { return Optional.ofNullable(playerQuests.get(questId)); }
+    public List<Quest> quests() { return List.copyOf(playerQuests.values()); }
+    public void acceptQuest(String questId) {
+        Quest quest = requireQuest(questId);
+        if (quest.status() != Quest.Status.LOCKED) throw new IllegalStateException("该任务不能再次接取");
+        quest.activate();
+    }
+    /** 交付任务物品并领取报酬；库存不足时不会消耗任何物品。 */
+    public long turnInQuest(String questId) {
+        Quest quest = requireQuest(questId);
+        if (quest.status() != Quest.Status.READY_TO_TURN_IN) throw new IllegalStateException("任务目标尚未完成");
+        Map<String, Integer> objectives = quest.objectives();
+        for (Map.Entry<String, Integer> entry : objectives.entrySet())
+            if (player.inventory().getOrDefault(entry.getKey(), 0) < entry.getValue())
+                throw new IllegalStateException("背包中的" + entry.getKey() + "不足，无法交付");
+        objectives.forEach(player::removeItem);
+        quest.turnIn();
+        long reward = questRewards.get(questId);
+        player.addMoney(reward);
+        player.changeReputation(1);
+        return reward;
+    }
+    private Quest requireQuest(String questId) {
+        Quest quest = playerQuests.get(questId);
+        if (quest == null) throw new IllegalArgumentException("未知任务：" + questId);
+        return quest;
+    }
     private String harvestResource(MapPoint point) {
         if (resourceHarvestDays.getOrDefault(point.id(), 0L) == clock.day())
             return point.name() + "今日已经采过了，明日或许会有新草药。";
         if (!player.spendStamina(5)) return "体力不足，歇息一会儿再采集吧。";
         player.addItem("herb", 1);
+        for (Quest quest : playerQuests.values()) quest.record("herb", 1);
         resourceHarvestDays.put(point.id(), clock.day());
         advanceMinutes(10);
         return "你在" + point.name() + "采得草药一份（体力 -5）。";
