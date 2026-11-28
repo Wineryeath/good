@@ -168,7 +168,7 @@ class GameWorldTest {
         long childBefore = world.life("child").moneyInWen();
         world.recordNpcDeath("parent","寿终正寝");
         assertFalse(world.life("parent").alive());
-        assertTrue(world.npcPositions(GameMap.starterTown()).isEmpty());
+        assertFalse(world.npcPositions(GameMap.starterTown()).stream().anyMatch(p -> p.npcId().equals("parent")));
         assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(1).type());
         assertEquals(estate,world.inheritNpcEstate("parent","child"));
         assertEquals(childBefore + estate,world.life("child").moneyInWen());
@@ -196,6 +196,30 @@ class GameWorldTest {
         assertFalse(world.life("npc").alive());
         assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(0).type());
         assertThrows(IllegalStateException.class,() -> world.recordNpcDeath("npc","重复登记"));
+    }
+
+    @Test void illnessWorsensDailyAndTreatmentStopsItsProgression() {
+        Npc npc = new Npc("npc","老周","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,0),List.of(npc));
+        world.giveNpcIllness("npc","风寒",2);
+        assertTrue(world.life("npc").sick());
+        world.advanceMinutes(24*60);
+        assertEquals(96,world.life("npc").health());
+        world.treatNpc("npc","服用草药",2,3);
+        assertFalse(world.life("npc").sick());
+        assertEquals(99,world.life("npc").health());
+        world.advanceMinutes(24*60);
+        assertEquals(100,world.life("npc").health());
+        assertTrue(world.life("npc").memories().stream().anyMatch(m -> m.contains("服用草药")));
+    }
+
+    @Test void untreatedSevereIllnessCanCauseRecordedDeath() {
+        Npc npc = new Npc("npc","老周","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,0),List.of(npc));
+        world.giveNpcIllness("npc","重症寒疾",3);
+        world.advanceMinutes(17*24*60);
+        assertFalse(world.life("npc").alive());
+        assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(0).type());
     }
 
 }
