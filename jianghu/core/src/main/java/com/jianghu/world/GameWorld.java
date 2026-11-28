@@ -861,6 +861,37 @@ public final class GameWorld {
         return "你在" + point.name() + "喝茶歇息一个时辰，花费 30 文，恢复了体力与健康。";
     }
 
+    /** 草药炼制金疮药：两份草药换一份成药。 */
+    public String craftMedicine() {
+        if (player.inventory().getOrDefault("herb", 0) < 2) throw new IllegalStateException("炼制金疮药需要两份草药");
+        player.removeItem("herb", 2); player.addItem("medicine", 1);
+        advanceMinutes(30);
+        return "你以两份草药炼成一份金疮药。";
+    }
+
+    /** 烹制熟食：一份粮食搭配一份蔬菜或鲜鱼。 */
+    public String cookMeal() {
+        if (player.inventory().getOrDefault("grain", 0) < 1)
+            throw new IllegalStateException("烹饪熟食需要一份粮食");
+        String side = player.inventory().getOrDefault("vegetable", 0) > 0 ? "vegetable" :
+            player.inventory().getOrDefault("fish", 0) > 0 ? "fish" : null;
+        if (side == null) throw new IllegalStateException("还需要一份时蔬或鲜鱼");
+        player.removeItem("grain", 1); player.removeItem(side, 1); player.addItem("meal", 1);
+        advanceMinutes(20);
+        return "你烹制出一份江南熟食。";
+    }
+
+    public String equipPlayerItem(String itemId) {
+        var item = com.jianghu.item.EquipmentCatalog.find(itemId)
+            .orElseThrow(() -> new IllegalArgumentException("这件物品不能装备"));
+        if (!player.equip(itemId)) throw new IllegalStateException("背包中没有" + item.name());
+        return "已装备" + item.name() + "：" + item.description();
+    }
+
+    public String unequipPlayerItem(com.jianghu.item.EquipmentItem.Slot slot) {
+        if (!player.unequip(slot)) throw new IllegalStateException("该装备栏目前是空的");
+        return "装备已放回背包。";
+    }
     /** 使用一件可消耗物品；先确认物品存在且有效，再扣除库存并应用效果。 */
     public String useInventoryItem(String itemId) {
         com.jianghu.item.InventoryItem item = com.jianghu.item.InventoryCatalog.find(itemId)
