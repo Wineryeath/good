@@ -40,7 +40,7 @@ public final class PixelCharacterRenderer {
         shapes.setColor(SKIN);
         if (state == CharacterAnimationState.ATTACK) {
             shapes.rect(x + (direction > 0 ? 12 : -2)*scale, y + 8*scale, 5*scale, 3*scale);
-        } else if (state == CharacterAnimationState.TRAIN || state == CharacterAnimationState.BLOCK) {
+        } else if (state == CharacterAnimationState.TRAIN) {
             shapes.rect(x + 1*scale, y + 11*scale, 4*scale, 3*scale);
             shapes.rect(x + 11*scale, y + 11*scale, 4*scale, 3*scale);
         } else {
