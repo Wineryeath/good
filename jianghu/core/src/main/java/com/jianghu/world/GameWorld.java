@@ -10,6 +10,8 @@ import com.jianghu.time.WorldClock;
 import com.jianghu.social.NpcRelationship;
 import com.jianghu.social.DialogueService;
 import com.jianghu.social.NpcSocialGraph;
+import com.jianghu.business.BusinessType;
+import com.jianghu.business.NpcBusiness;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,11 +33,14 @@ public final class GameWorld {
     private final java.util.Set<String> deathRecorded = new java.util.LinkedHashSet<>();
     private final Map<String, String> independentHouseholds = new LinkedHashMap<>();
     private final Map<String, Integer> courtshipDays = new LinkedHashMap<>();
+    private final Map<String, NpcBusiness> businesses = new LinkedHashMap<>();
+    private long lastBusinessDay;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
         this.familyRegistry = new NpcFamilyRegistry(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
         this.lastAgedDay = clock.day();
+        this.lastBusinessDay = clock.day();
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
@@ -100,7 +105,7 @@ public final class GameWorld {
         for (int i = 0; i < minutes; i++) {
             long previousDay = clock.day();
             clock.advance(1);
-            if (clock.day() != previousDay) { settleNpcAging(); settleNpcRomance(); }
+            if (clock.day() != previousDay) { settleNpcAging(); settleNpcRomance(); settleNpcBusinesses(); }
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
                     if (life(npc.id()).alive()) life(npc.id()).passHour(life(npc.id()).profession().orElse(npc.role()), locationFor(npc, clock.hour()), clock.hour());
@@ -399,6 +404,73 @@ public final class GameWorld {
         return amount;
     }
 
+    /** 创办家族产业；主人必须是成年且在世的 NPC。 */
+    public NpcBusiness foundNpcBusiness(String ownerNpcId, String businessId, String name,
+                                        BusinessType type, long dailyIncomeInWen, long initialTreasuryInWen) {
+        requireNpc(ownerNpcId);
+        NpcLifeState owner = life(ownerNpcId);
+        if (!owner.alive() || owner.ageYears() < 18) throw new IllegalStateException("产业主人必须成年且在世");
+        if (businesses.containsKey(businessId)) throw new IllegalArgumentException("产业编号已存在");
+        NpcBusiness business = new NpcBusiness(businessId, name, type, ownerNpcId, dailyIncomeInWen, initialTreasuryInWen);
+        businesses.put(businessId, business);
+        owner.remember("创办" + name + "，成为" + type.displayName() + "主人");
+        return business;
+    }
+
+    /** 只雇佣在世的家庭成员或已建立师徒关系的 NPC。 */
+    public void hireForNpcBusiness(String ownerNpcId, String businessId, String employeeNpcId) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以雇佣");
+        requireNpc(employeeNpcId);
+        if (!life(ownerNpcId).alive() || !life(employeeNpcId).alive()) throw new IllegalStateException("产业主人和雇员都必须在世");
+        boolean family = familyRegistry.familyOf(ownerNpcId).contains(employeeNpcId)
+            || familyRegistry.familyOf(employeeNpcId).contains(ownerNpcId);
+        boolean apprenticeship = socialGraph.relation(ownerNpcId, employeeNpcId)
+            .filter(b -> b.type() == NpcSocialGraph.RelationType.MENTOR).isPresent()
+            || socialGraph.relation(employeeNpcId, ownerNpcId)
+            .filter(b -> b.type() == NpcSocialGraph.RelationType.MENTOR).isPresent();
+        if (!family && !apprenticeship) throw new IllegalArgumentException("雇员必须是家庭成员或师徒");
+        business.hire(employeeNpcId);
+        life(ownerNpcId).remember("雇佣" + requireNpc(employeeNpcId).name() + "加入" + business.name());
+        life(employeeNpcId).remember("受雇于" + business.name());
+    }
+
+    public void fireFromNpcBusiness(String ownerNpcId, String businessId, String employeeNpcId) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以解雇雇员");
+        business.fire(employeeNpcId);
+        life(ownerNpcId).remember("辞退" + requireNpc(employeeNpcId).name() + "，其离开" + business.name());
+        life(employeeNpcId).remember("离开产业" + business.name());
+    }
+
+    /** 逝者的家庭成员可继承产业所有权，产业金库和其他雇员保持不变。 */
+    public void inheritNpcBusiness(String businessId, String heirNpcId) {
+        NpcBusiness business = requireBusiness(businessId);
+        String deceasedId = business.ownerNpcId();
+        Npc deceased = requireNpc(deceasedId);
+        Npc heir = requireNpc(heirNpcId);
+        if (life(deceasedId).alive()) throw new IllegalStateException("产业主人尚在人世");
+        if (!familyRegistry.familyOf(deceasedId).contains(heirNpcId)) throw new IllegalArgumentException("产业继承人必须是登记家庭成员");
+        if (!life(heirNpcId).alive()) throw new IllegalStateException("继承人已故");
+        business.transferOwnership(heirNpcId);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.INHERITANCE, List.of(deceasedId, heirNpcId), clock.day(),
+            heir.name() + "继承" + deceased.name() + "的产业" + business.name());
+        life(heirNpcId).remember("继承" + deceased.name() + "的产业" + business.name());
+    }
+
+    public List<NpcBusiness> npcBusinesses() { return List.copyOf(businesses.values()); }
+    public Optional<NpcBusiness> npcBusiness(String businessId) { return Optional.ofNullable(businesses.get(businessId)); }
+    private NpcBusiness requireBusiness(String businessId) {
+        NpcBusiness business = businesses.get(businessId);
+        if (business == null) throw new IllegalArgumentException("未知产业：" + businessId);
+        return business;
+    }
+    private void settleNpcBusinesses() {
+        while (lastBusinessDay < clock.day()) {
+            lastBusinessDay++;
+            businesses.values().forEach(NpcBusiness::settleDay);
+        }
+    }
     /** 家庭成员发生冲突：谱系保留，社会关系暂时转为仇敌。 */
     public void familyConflict(String firstNpcId, String secondNpcId, String description) {
         Npc first = requireNpc(firstNpcId);
