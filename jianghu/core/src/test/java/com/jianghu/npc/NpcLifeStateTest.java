@@ -61,4 +61,16 @@ class NpcLifeStateTest {
         assertFalse(life.alive());
     }
 
+    @Test void illnessCanBeTreatedAndSeverityIsReduced() {
+        NpcLifeState life = new NpcLifeState();
+        life.contractIllness("风寒",2);
+        assertTrue(life.sick());
+        assertEquals("风寒",life.illness());
+        life.passDay();
+        assertEquals(96,life.health());
+        life.treatIllness(2,3);
+        assertFalse(life.sick());
+        assertEquals(99,life.health());
+    }
+
 }
