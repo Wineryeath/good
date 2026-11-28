@@ -278,4 +278,29 @@ class GameWorldTest {
         assertEquals(0,world.courtshipDays("first","second"));
     }
 
+    @Test void spousesAndChildrenShareAnExistingIndependentHousehold() {
+        Npc first = new Npc("first","阿青","居民",List.of(new Npc.Schedule(0,24,"home",0)),0);
+        Npc second = new Npc("second","阿月","居民",List.of(new Npc.Schedule(0,24,"home",0)),0);
+        Npc child = new Npc("child","小禾","居民",List.of(new Npc.Schedule(0,24,"home",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(first,second,child));
+        world.establishIndependentHousehold("first","禾风小院");
+        world.marryNpcs("first","second");
+        assertEquals("禾风小院",world.familyHouseholdOf("second").orElseThrow());
+        assertEquals("禾风小院",world.npcLocationAt("second",22));
+        world.addNpcChild("first","child");
+        assertEquals("禾风小院",world.familyHouseholdOf("child").orElseThrow());
+        assertEquals("禾风小院",world.npcLocationAt("child",22));
+    }
+
+    @Test void marryingTwoNpcWithDifferentHomesUnifiesThemUnderFirstSpousesHome() {
+        Npc first = new Npc("first","阿青","居民",List.of(),0);
+        Npc second = new Npc("second","阿月","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(first,second));
+        world.establishIndependentHousehold("first","禾风小院");
+        world.establishIndependentHousehold("second","听雨别院");
+        world.marryNpcs("first","second");
+        assertEquals("禾风小院",world.familyHouseholdOf("first").orElseThrow());
+        assertEquals("禾风小院",world.familyHouseholdOf("second").orElseThrow());
+    }
+
 }
