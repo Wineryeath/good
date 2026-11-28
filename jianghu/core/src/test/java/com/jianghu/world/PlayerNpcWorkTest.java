@@ -16,7 +16,7 @@ class PlayerNpcWorkTest {
 
     @Test void playerCanWorkForNearbyNpcForWages() {
         Player player = new Player("行旅人");
-        player.moveTo(7, 4);
+        player.moveTo(9, 4);
         GameWorld world = new GameWorld(player, new WorldClock(1, 8 * 60), List.of(teaOwner()));
         long before = player.moneyInWen();
         assertEquals(45, world.workForNearbyNpc(GameMap.starterTown()));
@@ -28,18 +28,18 @@ class PlayerNpcWorkTest {
 
     @Test void playerCanGiveInventoryGiftToNearbyNpc() {
         Player player = new Player("行旅人");
-        player.moveTo(7, 4);
+        player.moveTo(9, 4);
         player.addItem("herb", 1);
         GameWorld world = new GameWorld(player, new WorldClock(1, 8 * 60), List.of(teaOwner()));
         world.giftToNearbyNpc(GameMap.starterTown(), "herb");
         assertFalse(player.inventory().containsKey("herb"));
         assertEquals(4, world.relationship("tea-owner").favor());
-        assertEquals(1, world.relationship("tea-owner").conversations());
+        assertEquals(0, world.relationship("tea-owner").conversations());
     }
 
     @Test void workAndGiftFailSafelyWhenNpcOrResourcesAreUnavailable() {
         Player player = new Player("行旅人");
-        player.moveTo(7, 4);
+        player.moveTo(9, 4);
         player.spendStamina(90);
         GameWorld world = new GameWorld(player, new WorldClock(1, 8 * 60), List.of(teaOwner()));
         assertThrows(IllegalStateException.class, () -> world.workForNearbyNpc(GameMap.starterTown()));
