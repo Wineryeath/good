@@ -21,6 +21,7 @@ class GameWorldSaveServiceTest {
     @Test void defeatedPlayerCanRecoverAtTheTownClinic() {
         GameWorld defeated = world(1, 360);
         defeated.player().changeHealth(-100);
+        defeated.player().spendStamina(100);
         long moneyBefore = defeated.player().moneyInWen();
         String message = defeated.recoverFromDefeat();
         assertEquals(35, defeated.player().health());
