@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一人一江湖 · 江南初见</title>
+<style>
+:root{--ink:#263b35;--paper:#f4ecd8;--jade:#477b68;--gold:#d5a94f}*{box-sizing:border-box}
+body{margin:0;background:#182b2b;color:var(--ink);font-family:"Microsoft YaHei",system-ui,sans-serif}
+#app{max-width:1240px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;align-items:center;color:#f6ebd0;gap:12px;flex-wrap:wrap}
+h1{font-family:serif;letter-spacing:.16em;margin:4px 0;font-size:clamp(23px,4vw,36px)}header p{margin:4px 0;color:#b8cbbd;font-size:13px}
+button{border:1px solid #a98c54;background:#f4e6c5;color:#493d2d;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer}
+button:hover{background:#ffefc9}button:disabled{opacity:.4;cursor:not-allowed}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:14px;margin-top:14px}
+.stage{background:#263b35;padding:10px;border:1px solid #6b8067;border-radius:14px;box-shadow:0 12px 36px #0006}
+canvas{width:100%;height:auto;display:block;border-radius:8px;image-rendering:pixelated;background:#9bbd9c}
+.hint{color:#d6e0ce;font-size:12px;padding:9px 4px 2px}
+.panel{background:var(--paper);border-radius:14px;padding:15px;box-shadow:0 12px 36px #0004}
+.panel h2{font-family:serif;font-size:18px;margin:0 0 10px;border-bottom:1px solid #cbbd9c;padding-bottom:8px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat{background:#e9dfc4;border-radius:8px;padding:8px;font-size:12px}.stat b{display:block;font-size:16px;margin-top:3px}
+.bar{height:7px;background:#c7bda4;border-radius:8px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:#54836a}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
+.actions button{font-size:12px;padding:9px 5px}
+.log{height:150px;overflow:auto;background:#e8dfc9;border-radius:8px;padding:9px;font-size:12px;line-height:1.7}
+.log p{margin:0 0 4px}.muted{color:#796e5b;font-size:12px}
+.quest{background:#e9dfc4;border-radius:8px;padding:9px;margin:8px 0;font-size:12px;line-height:1.6}
+#dialog{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px}
+#dialog .card{max-width:440px;width:100%;background:var(--paper);border-radius:14px;padding:20px;box-shadow:0 20px 60px #0008}
+#dialog h2{font-family:serif;margin-top:0}#dialog p{line-height:1.8}
+footer{text-align:center;color:#b8cbbd;font-size:12px;padding:15px}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.panel{display:grid;grid-template-columns:1fr 1fr;gap:12px}.panel section{min-width:0}.panel .wide{grid-column:1/-1}.log{height:110px}}
+@media(max-width:520px){#app{padding:9px}.panel{display:block}.layout{gap:9px}.hint{line-height:1.6}}
+</style>
+</head>
+<body><div id="app">
+<header><div><h1>一人一江湖</h1><p>江南初见 · 一人一江湖，万般皆人生</p></div><div><button id="saveBtn">保存行囊</button> <button id="loadBtn">读取存档</button> <button id="resetBtn">重新开始</button></div></header>
+<div class="layout"><main class="stage"><canvas id="world" width="800" height="544" aria-label="江南水乡游戏地图"></canvas><div class="hint">移动：WASD / 方向键　交互：E　钓鱼：靠近河岸按 F　采集：靠近草药或果树按 E　打开地图：M</div></main>
+<aside class="panel">
+<section class="wide"><h2>行走江湖</h2><div class="stats"><div class="stat">姓名<b>无名旅人</b></div><div class="stat">时辰<b id="clock">卯时</b></div><div class="stat">银两<b id="money">20 两</b></div><div class="stat">体力<b id="stamina">100 / 100</b><div class="bar"><i id="staminaBar" style="width:100%"></i></div></div><div class="stat">天气<b id="weather">晴</b></div><div class="stat">声望<b id="fame">初出茅庐</b></div></div></section>
+<section><h2>随身行囊</h2><div id="inventory" class="muted">空空如也</div><div class="actions"><button id="eatBtn">食用鱼干 (+体力)</button><button id="sellBtn">集市出售杂货</button><button id="restBtn">客栈歇息</button><button id="meditateBtn">静坐调息</button></div></section>
+<section><h2>江湖见闻</h2><div id="quest" class="quest">初到乌篷镇：去桥头与茶摊老板聊聊。</div><div id="log" class="log" aria-live="polite"><p>【卯时】烟雨初歇，你乘一叶扁舟来到乌篷镇。</p></div></section>
+</aside></div><footer>原型版本 0.1 · 探索、生活、交友与成长，江湖由你书写。</footer></div>
+<div id="dialog"><div class="card"><h2 id="dialogTitle">江湖</h2><p id="dialogText"></p><div id="dialogChoices"></div></div></div>
+<script>
+(()=>{
+const c=document.getElementById('world'),ctx=c.getContext('2d'),T=32,COLS=25,ROWS=17;
+const tiles=Array.from({length:ROWS},(_,y)=>Array.from({length:COLS},(_,x)=>{
+ if(x<2||y<2||x>22||y>14)return 1;
+ if((x>=14&&y>=1)||(x>=13&&y>=5))return 2;
+ if((x===12&&y>=5)||(x===13&&y===5))return 2;
+ if((x===11&&y===8)||(x===12&&y===8)||(x===13&&y===8))return 3;
+ if((x===7&&y===4)||(x===8&&y===4)||(x===7&&y===5))return 4;
+ if((x===4&&y===10)||(x===5&&y===10)||(x===4&&y===11))return 5;
+ return 0;
+}));
+const objects=[{x:7,y:3,type:'inn',name:'听雨客栈',emoji:'🏮'},{x:4,y:9,type:'market',name:'乌篷集市',emoji:'🏪'},{x:11,y:7,type:'bridge',name:'石拱桥',emoji:'🌉'},{x:9,y:11,type:'herb',name:'野生草药',emoji:'🌿',active:true},{x:6,y:7,type:'tree',name:'枇杷树',emoji:'🌳',active:true},{x:17,y:7,type:'fisher',name:'老渔翁',emoji:'🎣'},{x:10,y:4,type:'npc',name:'茶摊老板',emoji:'🧑‍🍳'}];
+const state={x:9,y:9,money:20,stamina:100,items:{},minute:360,weather:'晴',quest:0,fame:0,fish:0,harvest:0};
+let keys={},last=0,dialogOpen=false;
+const $=id=>document.getElementById(id);
+function log(s){const p=document.createElement('p');p.textContent=s;$('log').prepend(p)}
+function add(item,n=1){state.items[item]=(state.items[item]||0)+n;render()}
+function spend(n){if(state.stamina<n){log('你有些疲惫，先歇一歇吧。');return false}state.stamina-=n;return true}
+function near(o){return Math.abs(state.x-o.x)+Math.abs(state.y-o.y)<=1}
+function openDialog(title,txt,choices){dialogOpen=true;$('dialogTitle').textContent=title;$('dialogText').textContent=txt;const box=$('dialogChoices');box.innerHTML='';choices.forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.style.margin='4px';b.onclick=()=>{fn();closeDialog()};box.append(b)});const close=document.createElement('button');close.textContent='告辞';close.onclick=closeDialog;box.append(close);$('dialog').style.display='grid'}
+function closeDialog(){dialogOpen=false;$('dialog').style.display='none'}
+function interact(){const o=objects.find(o=>near(o));if(!o){log('四下望去，并无可交谈之人。');return}
+ if(o.type==='npc'){openDialog('茶摊老板',state.quest===0?'客官面生得很。若想在镇上安身，不妨帮我采些草药，我给你些盘缠。':'镇上东边水路通往芦苇荡，西边山道可去竹林。江湖大着呢。',[['接下差事',()=>{if(state.quest===0){state.quest=1;log('接取见闻：采集一株野草药，交给茶摊老板。')}}],['打听消息',()=>log('老板：近来河上常有鱼群，清晨下竿最合适。')]]);return}
+ if(o.type==='inn'){openDialog('听雨客栈','掌柜擦着桌子招呼你。夜深了，不如住上一晚？', [['住一晚（3两）',()=>{if(state.money>=3){state.money-=3;state.stamina=100;state.minute=360;log('你在客栈睡了个好觉，精神焕发。')}else log('银两不够。')}]]);return}
+ if(o.type==='market'){openDialog('乌篷集市','摊贩吆喝着，鱼货、草药和日用品琳琅满目。', [['买鱼竿（8两）',()=>{if(state.money>=8&&!state.items['鱼竿']){state.money-=8;add('鱼竿');log('买到一支结实的竹鱼竿。')}else log('银两不足，或你已有鱼竿。')}],['买干粮（2两）',()=>{if(state.money>=2){state.money-=2;add('鱼干');log('买到一份鱼干。')}else log('银两不够。')}]]);return}
+ if(o.type==='herb'||o.type==='tree'){if(!o.active){log('这里暂时没有可采的东西。');return}if(!spend(5))return;o.active=false;const item=o.type==='herb'?'草药':'枇杷';add(item);state.harvest++;log('你采得'+item+'一份。');if(state.quest===1&&item==='草药'){state.quest=2;state.money+=10;state.fame++;log('茶摊老板收下草药，赏你10两。差事完成！')}return}
+ if(o.type==='fisher'){openDialog('老渔翁','钓鱼讲究耐心。先去集市买支鱼竿，再到河边试试手气。', [['请教钓法',()=>log('老渔翁：河边按 F 下竿，鱼咬钩时再按一次 F。')]]);return}
+ log('桥上风景不错，远处炊烟袅袅。')
+}
+let fishing=false,bite=false,biteAt=0;
+function fish(){if(!state.items['鱼竿']){log('你没有鱼竿，先去集市买一支吧。');return}if(fishing){if(bite){add('鲜鱼');state.fish++;state.money+=2;log('提竿有鱼！收获鲜鱼一尾，顺手卖掉小鱼得2两。')}else log('鱼线一沉，你却没能及时收竿。');fishing=false;bite=false;return}if(!spend(4))return;fishing=true;bite=false;log('你抛下鱼线，静候水波。稍等片刻，再按 F 收竿……');biteAt=Date.now()+1800+Math.random()*2400;setTimeout(()=>{if(fishing){bite=true;log('浮漂猛地一沉！快按 F 收竿！')}},biteAt-Date.now())}
+function render(){ $('money').textContent=state.money+' 两';$('stamina').textContent=state.stamina+' / 100';$('staminaBar').style.width=state.stamina+'%';$('weather').textContent=state.weather;$('fame').textContent=state.fame?'小有名气':'初出茅庐';$('inventory').textContent=Object.keys(state.items).length?Object.entries(state.items).map(([k,v])=>k+' × '+v).join('、'):'空空如也';$('quest').textContent=['初到乌篷镇：去桥头与茶摊老板聊聊。','镇中差事：采集一株野草药，交给茶摊老板。','差事已完成：你在乌篷镇留下了好名声。'][state.quest]}
+function draw(){ctx.clearRect(0,0,c.width,c.height);
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){let t=tiles[y][x],px=x*T,py=y*T;ctx.fillStyle=t===2?'#6eabb0':t===1?'#557b58':t===3?'#bca77c':t===4?'#b9a17b':t===5?'#8c9e65':'#91b77d';ctx.fillRect(px,py,T,T);ctx.fillStyle=t===2?'#8dc3c3':t===0?'#9fc68b':'#0000';if(t===2){ctx.fillRect(px+4,py+7,10,2);ctx.fillRect(px+19,py+22,8,2)}else if(t===0){ctx.fillRect(px+5,py+8,2,2);ctx.fillRect(px+23,py+24,2,2)}}
+ // paths and structures
+ ctx.fillStyle='#80654b';ctx.fillRect(6*T,2*T,4*T,3*T);ctx.fillStyle='#d4b47b';ctx.fillRect(6*T+5,2*T+8,4*T-10,3*T-13);ctx.fillStyle='#70463a';ctx.beginPath();ctx.moveTo(6*T,2*T+8);ctx.lineTo(8*T,2*T-15);ctx.lineTo(10*T,2*T+8);ctx.fill();
+ ctx.fillStyle='#a97848';ctx.fillRect(3*T,8*T,3*T,3*T);ctx.fillStyle='#e1c58e';ctx.fillRect(3*T+5,8*T+7,3*T-10,3*T-14);
+ objects.forEach(o=>{ctx.font='23px serif';ctx.textAlign='center';ctx.fillText(o.emoji,o.x*T+16,o.y*T+24);if(o.active===false&&(o.type==='herb'||o.type==='tree'))ctx.globalAlpha=.25,ctx.fillText(o.emoji,o.x*T+16,o.y*T+24),ctx.globalAlpha=1});
+ // player
+ const px=state.x*T+16,py=state.y*T+16;ctx.fillStyle='#263b35';ctx.fillRect(px-7,py-2,14,13);ctx.fillStyle='#e8c59a';ctx.fillRect(px-6,py-12,12,11);ctx.fillStyle='#293e4b';ctx.fillRect(px-7,py-15,14,5);ctx.fillStyle='#fff2cf';ctx.fillRect(px-3,py-7,2,2);ctx.fillRect(px+2,py-7,2,2);
+ // labels
+ ctx.fillStyle='#243b35';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.fillText('乌篷镇 · 江南水乡',12,20);
+ if(fishing){ctx.fillStyle='#fff4d6';ctx.fillRect(540,18,245,32);ctx.fillStyle='#3a4a3d';ctx.fillText(bite?'鱼咬钩了！按 F 收竿':'垂钓中……等待浮漂动静',552,39)}
+}
+function tick(ts){if(ts-last>115){last=ts;if(!dialogOpen){let dx=0,dy=0;if(keys.ArrowUp||keys.w)dy=-1;if(keys.ArrowDown||keys.s)dy=1;if(keys.ArrowLeft||keys.a)dx=-1;if(keys.ArrowRight||keys.d)dx=1;if(dx||dy){const nx=state.x+dx,ny=state.y+dy;if(nx>0&&ny>0&&nx<COLS-1&&ny<ROWS-1&&tiles[ny][nx]!==2){state.x=nx;state.y=ny;state.minute+=2;}}}}draw();requestAnimationFrame(tick)}
+function timeLabel(){const h=Math.floor(state.minute/60)%24;return h<5?'子时':h<7?'卯时':h<11?'辰时':h<13?'午时':h<17?'未时':h<19?'酉时':h<22?'戌时':'亥时'}
+function save(){localStorage.setItem('jianghu-save-v1',JSON.stringify(state));log('行囊与旅途已保存。')}
+function load(){const s=localStorage.getItem('jianghu-save-v1');if(!s){log('尚无存档。');return}try{Object.assign(state,JSON.parse(s));render();log('你从记忆中续上了这段江湖路。')}catch{log('存档似乎损坏，无法读取。')}}
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;if(k==='e'&&!dialogOpen)interact();if(k==='f'&&!dialogOpen)fish();if(k==='m')openDialog('乌篷镇地图','你身处江南水乡。西侧是集市与客栈，东侧临河，桥边有茶摊。更远处的竹海、雪岭、塞北与京城，未来都将向你开放。',[['记下了',()=>{}]]);});
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+$('saveBtn').onclick=save;$('loadBtn').onclick=load;$('resetBtn').onclick=()=>{if(confirm('重新开始将覆盖当前旅途，确定吗？')){localStorage.removeItem('jianghu-save-v1');location.reload()}};
+$('eatBtn').onclick=()=>{if(state.items['鱼干']){state.items['鱼干']--;state.stamina=Math.min(100,state.stamina+25);log('吃下一份鱼干，体力恢复。');render()}else log('你没有鱼干。')};
+$('sellBtn').onclick=()=>{let n=0;for(const item of ['草药','枇杷','鲜鱼']){n+=(state.items[item]||0)*({草药:3,枇杷:2,鲜鱼:4}[item]);delete state.items[item]}if(n){state.money+=n;log('你将杂货卖给商贩，获得'+n+'两。');render()}else log('没有可出售的杂货。')};
+$('restBtn').onclick=()=>{if(state.money>=3){state.money-=3;state.stamina=100;state.minute=(Math.floor(state.minute/1440)+1)*1440+360;log('在客栈休息一夜，体力恢复。');render()}else log('住店需要3两银子。')};
+$('meditateBtn').onclick=()=>{state.stamina=Math.min(100,state.stamina+12);state.minute+=30;log('你静坐调息，心神渐渐安定。');render()};
+setInterval(()=>{$('clock').textContent=timeLabel();if(Math.random()<.08){state.weather=['晴','薄雾','小雨'][Math.floor(Math.random()*3)];$('weather').textContent=state.weather}},5000);
+render();requestAnimationFrame(tick);
+})();
+</script></body></html>
