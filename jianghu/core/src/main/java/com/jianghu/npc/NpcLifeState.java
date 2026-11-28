@@ -165,7 +165,7 @@ public final class NpcLifeState {
 
     public void remember(String event) {
         if (event == null || event.isBlank()) throw new IllegalArgumentException("记忆内容不能为空");
-        if (memories.size() == MEMORY_LIMIT) memories.removeFirst();
+        while (memories.size() >= MEMORY_LIMIT) memories.removeFirst();
         memories.addLast(event);
     }
     public boolean remembers(String event) { return memories.contains(event); }
