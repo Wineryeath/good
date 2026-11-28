@@ -524,8 +524,8 @@ class GameWorldTest {
         world.life("merchant").creditMoney(10000);
         var caravan = world.createTradeCaravan("merchant", "raid", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
         world.loadTradeCaravan("merchant", "raid", TradeGood.TEA, 8);
-        world.departTradeCaravan("merchant", "raid");
-        world.advanceMinutes(540);
+        int journeyMinutes = world.departTradeCaravan("merchant", "raid");
+        world.advanceMinutes(journeyMinutes);
         assertEquals(TradeCaravan.State.COMPLETED, caravan.state());
         assertEquals(75, world.life("merchant").health());
         assertTrue(world.life("merchant").memories().stream().anyMatch(m -> m.contains("受伤")));
