@@ -25,7 +25,7 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
     Map<String, Long> lastSocialDay, Map<String, String> independentHouseholds,
     Map<String, Integer> courtshipDays, Map<String, Long> masterTrainingDays, Map<String, Integer> masterFavor,
     Set<String> schoolMemberships, Map<String, Long> schoolTrainingDays, Map<String, Integer> schoolFavor,
-    Map<String, Integer> schoolContribution) {
+    Map<String, Integer> schoolContribution, Map<String, Long> resourceHarvestDays) {
     public GameWorldSnapshot {
         if (player == null || day < 1 || minuteOfDay < 0 || minuteOfDay >= 1440 || weather == null || weather.isBlank()
                 || lastAgedDay < 1 || lastBusinessDay < 1) throw new IllegalArgumentException("世界存档数据无效");
@@ -38,6 +38,9 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
         independentHouseholds = Map.copyOf(independentHouseholds); courtshipDays = Map.copyOf(courtshipDays);
         masterTrainingDays = Map.copyOf(masterTrainingDays); masterFavor = Map.copyOf(masterFavor);
         schoolMemberships = Set.copyOf(schoolMemberships); schoolTrainingDays = Map.copyOf(schoolTrainingDays); schoolFavor = Map.copyOf(schoolFavor); schoolContribution = Map.copyOf(schoolContribution);
+        resourceHarvestDays = Map.copyOf(resourceHarvestDays);
+        if (resourceHarvestDays.values().stream().anyMatch(dayValue -> dayValue == null || dayValue < 1 || dayValue > day))
+            throw new IllegalArgumentException("采集冷却存档无效");
         if (!schoolMemberships.containsAll(schoolTrainingDays.keySet()) || !schoolMemberships.containsAll(schoolFavor.keySet()) || !schoolMemberships.containsAll(schoolContribution.keySet())
                 || schoolContribution.values().stream().anyMatch(value -> value == null || value < 0))
             throw new IllegalArgumentException("门派修习记录与弟子名册不一致");
