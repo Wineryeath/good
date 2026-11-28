@@ -37,7 +37,7 @@ class MartialSchoolProgressionTest {
             if (i < 2) world.advanceMinutes(1440);
         }
         assertEquals(3, world.martialSchoolFavor("shaolin-jingang"));
-        assertTrue(world.player().knowsTechnique("river_staff"));
+        assertTrue(world.player().knowsTechnique("sweeping_staff"));
         assertTrue(world.player().learnedStyles().contains(com.jianghu.combat.MartialArtStyle.STAFF));
     }
 
