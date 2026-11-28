@@ -64,6 +64,14 @@ public final class JianghuGame extends ApplicationAdapter {
                 world.player().inventory().getOrDefault("herb", 0)) + " 文。"; }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+            try { interactionMessage = "做工完成，获得 " + world.workForNearbyNpc(map) + " 文。"; }
+            catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            try { world.giftToNearbyNpc(map, "herb"); interactionMessage = "你送出一份草药，对方记下了这份心意。"; }
+            catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
             var quest = world.quest("herb-delivery").orElseThrow();
             try {
@@ -113,7 +121,7 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+" 份",36,36);
-        font.draw(batch,"WASD / 方向键移动  E：交谈  F：地点  B：买草药  V：卖草药  J：采药委托  空格：等待  ESC：退出",36,16);
+        font.draw(batch,"WASD / 方向键移动  E：交谈  F：地点  B：买草药  V：卖草药  J：采药委托  K：附近打工  G：赠送草药  空格：等待  ESC：退出",36,16);
         font.draw(batch, interactionMessage, 500, 58);
         for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
             font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
