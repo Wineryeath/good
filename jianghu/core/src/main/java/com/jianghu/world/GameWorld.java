@@ -219,7 +219,7 @@ public final class GameWorld {
             } + "）").collect(java.util.stream.Collectors.joining("、"));
         return site.landmark() + " · " + school.name() + "。" + school.philosophy() + "。入门需声望 "
             + school.entryReputation() + "、束脩 " + school.entryFeeInWen() + " 文。门内设施：" + facilities + "。"
-            + (schoolMemberships.contains(school.id()) ? " 你已是本门弟子，门中信任 " + martialSchoolFavor(school.id()) + "/3。" : "");
+            + (schoolMemberships.contains(school.id()) ? " 你已是本门弟子，品阶：" + martialSchoolRank(school.id()).title() + "，贡献 " + martialSchoolContribution(school.id()) + "，门中信任 " + martialSchoolFavor(school.id()) + "/3。" : "");
     }
     public String joinNearbyMartialSchool() {
         var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派山门"));
