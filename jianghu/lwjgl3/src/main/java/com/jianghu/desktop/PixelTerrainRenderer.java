@@ -15,6 +15,42 @@ public final class PixelTerrainRenderer {
     private static final Color ROOF = new Color(0.31f, 0.18f, 0.16f, 1f);
     private static final Color GOLD = new Color(0.91f, 0.73f, 0.36f, 1f);
 
+    private static final Color DEEP_WATER = new Color(0.12f,0.30f,0.48f,1f);
+    private static final Color SHALLOW_WATER = new Color(0.25f,0.52f,0.65f,1f);
+    private static final Color GRASS = new Color(0.39f,0.57f,0.34f,1f);
+    private static final Color FOREST = new Color(0.20f,0.43f,0.25f,1f);
+    private static final Color DENSE_FOREST = new Color(0.10f,0.29f,0.18f,1f);
+    private static final Color PATH = new Color(0.68f,0.58f,0.40f,1f);
+    private static final Color STONE_PATH = new Color(0.55f,0.54f,0.50f,1f);
+    private static final Color BRIDGE = new Color(0.75f,0.48f,0.25f,1f);
+    private static final Color HILL = new Color(0.48f,0.47f,0.32f,1f);
+    private static final Color MOUNTAIN = new Color(0.34f,0.34f,0.36f,1f);
+    private static final Color CAVE_FLOOR = new Color(0.27f,0.23f,0.20f,1f);
+    private static final Color TOWN_GROUND = new Color(0.66f,0.57f,0.42f,1f);
+    private static final Color BUILDING = new Color(0.46f,0.28f,0.22f,1f);
+    private static final Color TEMPLE_GROUND = new Color(0.70f,0.61f,0.48f,1f);
+    private static final Color TEMPLE_BUILDING = new Color(0.50f,0.35f,0.25f,1f);
+    private static final Color TREE_TRUNK = new Color(0.30f,0.22f,0.15f,1f);
+    private static final Color STONE_SHADE = new Color(0.23f,0.24f,0.26f,1f);
+    private static final Color BRIDGE_SHADE = new Color(0.36f,0.23f,0.17f,1f);
+    private static final Color BRIDGE_HIGHLIGHT = new Color(0.90f,0.68f,0.40f,1f);
+    private static final Color DOOR_SHADE = new Color(0.20f,0.14f,0.12f,1f);
+    private static final Color PATH_HIGHLIGHT = new Color(0.83f,0.74f,0.57f,0.75f);
+    private static final Color CAVE_SHADE = new Color(0.12f,0.11f,0.12f,1f);
+    private static final Color GRASS_HIGHLIGHT = new Color(0.66f,0.74f,0.42f,0.75f);
+    private static final Color TOWN_WATER = new Color(0.30f,0.58f,0.62f,1f);
+    private static final Color TOWN_WALL = new Color(0.25f,0.34f,0.29f,1f);
+    private static final Color TOWN_BRIDGE = new Color(0.66f,0.49f,0.30f,1f);
+    private static final Color TOWN_BUILDING = new Color(0.48f,0.32f,0.25f,1f);
+    private static final Color TOWN_GRASS = new Color(0.48f,0.65f,0.43f,1f);
+    private static final Color FACADE = new Color(0.73f,0.57f,0.39f,1f);
+    private static final Color FACADE_SHADE = new Color(0.42f,0.24f,0.18f,1f);
+    private static final Color WINDOW_SHADE = new Color(0.18f,0.15f,0.13f,1f);
+    private static final Color DOOR_LIGHT = new Color(0.95f,0.68f,0.30f,1f);
+    private static final Color DOOR_WOOD = new Color(0.30f,0.18f,0.12f,1f);
+    private static final Color PATH_MARK = new Color(0.83f,0.74f,0.57f,0.8f);
+    private static final Color INTERIOR_WALL = new Color(0.48f,0.52f,0.46f,1f);
+
     private PixelTerrainRenderer() {}
 
     public static void drawOverworldTile(ShapeRenderer shapes, TerrainKind kind, int x, int y, float ox, float oy, float tile) {
