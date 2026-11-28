@@ -4,15 +4,15 @@ on:
   push:
     paths:
       - "jianghu/**"
-      - ".github/workflows/java.yml"
+      - ".github/workflows/jianghu-java.yml"
   pull_request:
     paths:
       - "jianghu/**"
-      - ".github/workflows/java.yml"
+      - ".github/workflows/jianghu-java.yml"
   workflow_dispatch:
 
 jobs:
-  test:
+  test-and-package:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,3 +33,12 @@ jobs:
         run: gradle :core:test
       - name: Compile desktop client
         run: gradle :lwjgl3:compileJava
+      - name: Build desktop ZIP installer
+        run: gradle :lwjgl3:distZip
+      - name: Upload desktop ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: yiren-yijianghu-desktop
+          path: jianghu/lwjgl3/build/distributions/*.zip
+          if-no-files-found: error
+          retention-days: 14
