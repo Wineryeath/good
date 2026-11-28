@@ -67,10 +67,10 @@ class MartialSchoolProgressionTest {
         assertEquals(com.jianghu.combat.MartialSchoolRank.OUTER_DISCIPLE, world.martialSchoolRank("emei-lingxiu"));
         assertThrows(IllegalArgumentException.class, () -> world.donateToNearbyMartialSchool(150));
         assertThrows(IllegalStateException.class, () -> world.donateToNearbyMartialSchool(100_000));
-        assertTrue(world.donateToNearbyMartialSchool(300).contains("晋升"));
-        assertEquals(30, world.martialSchoolContribution("emei-lingxiu"));
-        assertEquals(com.jianghu.combat.MartialSchoolRank.OUTER_DISCIPLE, world.martialSchoolRank("emei-lingxiu"));
+        assertTrue(world.donateToNearbyMartialSchool(600).contains("晋升"));
+        assertEquals(60, world.martialSchoolContribution("emei-lingxiu"));
+        assertEquals(com.jianghu.combat.MartialSchoolRank.INNER_DISCIPLE, world.martialSchoolRank("emei-lingxiu"));
         assertTrue(world.donateToNearbyMartialSchool(100).contains("门派贡献 +10"));
-        assertEquals(40, world.martialSchoolContribution("emei-lingxiu"));
+        assertEquals(70, world.martialSchoolContribution("emei-lingxiu"));
     }
 }
