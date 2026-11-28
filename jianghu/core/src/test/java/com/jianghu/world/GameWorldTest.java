@@ -229,10 +229,11 @@ class GameWorldTest {
         GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,20*60),List.of(npc));
         world.establishIndependentHousehold("adult","禾风小院");
         assertEquals("禾风小院",world.independentHouseholdOf("adult").orElseThrow());
+        assertEquals("禾风小院",world.npcLocationAt("adult",20));
+        assertEquals("market-west",world.npcLocationAt("adult",10));
         assertTrue(world.life("adult").memories().stream().anyMatch(m -> m.contains("独立居所")));
         world.advanceMinutes(24*60);
-        assertEquals("禾风小院",world.npcs().get(0).id().equals("adult")
-            ? world.independentHouseholdOf("adult").orElseThrow() : "");
+        assertEquals("禾风小院",world.npcLocationAt("adult",22));
     }
 
     @Test void underageNpcCannotEstablishIndependentHousehold() {
