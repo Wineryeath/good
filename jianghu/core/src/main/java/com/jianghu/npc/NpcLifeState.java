@@ -15,6 +15,8 @@ public final class NpcLifeState {
     private int energy = 85;
     private int mood = 60;
     private long moneyInWen = 500;
+    private int health = 100;
+    private boolean alive = true;
     private final ArrayDeque<String> memories = new ArrayDeque<>();
 
     public int hunger() { return hunger; }
@@ -42,6 +44,28 @@ public final class NpcLifeState {
     public int energy() { return energy; }
     public int mood() { return mood; }
     public long moneyInWen() { return moneyInWen; }
+    public int health() { return health; }
+    public boolean alive() { return alive; }
+    public void changeHealth(int amount) {
+        if (!alive) throw new IllegalStateException("已故 NPC 无法改变健康");
+        health = clamp(health + amount);
+        if (health == 0) alive = false;
+    }
+    public void die() {
+        if (!alive) throw new IllegalStateException("NPC 已经去世");
+        alive = false;
+        health = 0;
+    }
+    /** 将全部现有银钱转交给继承人，返回实际转移金额。 */
+    public long transferWealthTo(NpcLifeState heir) {
+        if (heir == null || heir == this) throw new IllegalArgumentException("继承人无效");
+        if (alive) throw new IllegalStateException("在世 NPC 不能进行遗产继承");
+        if (!heir.alive) throw new IllegalStateException("继承人已故");
+        long amount = moneyInWen;
+        heir.moneyInWen = Math.addExact(heir.moneyInWen, amount);
+        moneyInWen = 0;
+        return amount;
+    }
     public List<String> memories() { return List.copyOf(memories); }
 
     /** 每经过一个游戏小时结算一次需求与生计。 */
