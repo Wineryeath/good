@@ -33,10 +33,14 @@ public final class RealtimeCombatEncounter {
 
     public RealtimeCombatController.ActionResult perform(CombatAction action) {
         requireOngoing();
+        if (action == CombatAction.SKILL && player.innerEnergy() < 15)
+            return new RealtimeCombatController.ActionResult(false, "内力不足，无法催动绝招", 0, controller.comboCount());
         RealtimeCombatController.ActionResult result = controller.perform(action, player.stamina());
         if (!result.accepted()) return result;
         if (!player.spendStamina(result.staminaSpent()))
             throw new IllegalStateException("体力状态发生变化，请重试");
+        if (action == CombatAction.SKILL && !player.spendInnerEnergy(15))
+            throw new IllegalStateException("内力状态发生变化，请重试");
         switch (action) {
             case LIGHT_ATTACK, HEAVY_ATTACK, SKILL -> {
                 int base = 3 + player.attackPower() + player.martialPower();
