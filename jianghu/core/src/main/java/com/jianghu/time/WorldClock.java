@@ -13,6 +13,11 @@ public final class WorldClock {
     public long day() { return day; }
     public int minuteOfDay() { return minuteOfDay; }
     public int hour() { return minuteOfDay / 60; }
+    public void restore(long savedDay, int savedMinuteOfDay) {
+        if (savedDay < 1 || savedMinuteOfDay < 0 || savedMinuteOfDay >= 1440)
+            throw new IllegalArgumentException("无效的存档世界时间");
+        day = savedDay; minuteOfDay = savedMinuteOfDay;
+    }
     public void advance(int minutes) {
         if (minutes < 0) throw new IllegalArgumentException("不能倒退时间");
         long total = (long) minuteOfDay + minutes;
