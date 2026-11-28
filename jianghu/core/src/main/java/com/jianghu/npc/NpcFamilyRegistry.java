@@ -9,10 +9,13 @@ import java.util.Set;
 
 /** NPC 家庭谱系：维护配偶与亲子关系，并提供亲属查询。 */
 public final class NpcFamilyRegistry {
+    public enum EventType { MARRIAGE, BIRTH, CONFLICT, RECONCILIATION, INHERITANCE, DEATH }
+    public record FamilyEvent(EventType type, List<String> participants, long worldDay, String description) {}
     private final Set<String> knownNpcIds;
     private final Map<String, String> spouses = new LinkedHashMap<>();
     private final Map<String, Set<String>> parents = new LinkedHashMap<>();
     private final Map<String, Set<String>> children = new LinkedHashMap<>();
+    private final List<FamilyEvent> events = new java.util.ArrayList<>();
 
     public NpcFamilyRegistry(Set<String> knownNpcIds) {
         if (knownNpcIds == null) throw new IllegalArgumentException("NPC 名册不能为空");
@@ -27,6 +30,7 @@ public final class NpcFamilyRegistry {
             throw new IllegalArgumentException("直系亲属不能结为配偶");
         spouses.put(firstNpcId, secondNpcId);
         spouses.put(secondNpcId, firstNpcId);
+        recordEvent(EventType.MARRIAGE, List.of(firstNpcId, secondNpcId), 1L, firstNpcId + " 与 " + secondNpcId + " 结为夫妻");
     }
 
     public void addChild(String parentNpcId, String childNpcId) {
@@ -39,6 +43,15 @@ public final class NpcFamilyRegistry {
         childParents.add(parentNpcId);
         children.computeIfAbsent(parentNpcId, ignored -> new LinkedHashSet<>()).add(childNpcId);
     }
+
+    public void recordEvent(EventType type, List<String> participants, long worldDay, String description) {
+        if (type == null || participants == null || participants.isEmpty() || worldDay < 1 || description == null || description.isBlank())
+            throw new IllegalArgumentException("家庭事件资料不完整");
+        List<String> unique = participants.stream().distinct().toList();
+        unique.forEach(this::requireKnown);
+        events.add(new FamilyEvent(type, unique, worldDay, description));
+    }
+    public List<FamilyEvent> events() { return List.copyOf(events); }
 
     public Optional<String> spouseOf(String npcId) {
         requireKnown(npcId);
