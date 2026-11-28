@@ -110,7 +110,7 @@ public final class JianghuGame extends ApplicationAdapter {
             } else if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) interactionMessage = "交战之中无法打开世界地图。";
             else { overworldMode = !overworldMode; interactionMessage = overworldMode ? "已打开六域世界地图，沿关隘可前往其他地域。" : "已返回乌篷镇。"; }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && overworldMode) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && overworldMode) {
             try { interactionMessage = world.enterNearbyMartialSchool(); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
@@ -130,7 +130,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 } else interactionMessage = world.meditate();
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && (overworldMode || world.insideMartialSchool())) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.P) && (overworldMode || world.insideMartialSchool())) {
             try {
                 if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.SCRIPTURE_HALL);
                 else {
@@ -139,7 +139,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 }
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && (overworldMode || world.insideMartialSchool())) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.R) && (overworldMode || world.insideMartialSchool())) {
             try {
                 if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.INFIRMARY);
                 else {
@@ -148,7 +148,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 }
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Q) && overworldMode && !world.insideMartialSchool()) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.Q) && overworldMode && !world.insideMartialSchool()) {
             try { interactionMessage = world.donateToNearbyMartialSchool(100); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
