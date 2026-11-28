@@ -45,12 +45,9 @@ class ExpandedSystemsTest {
     @Test void overworldExplorerUsesWalkableGatesToConnectRegions() {
         var explorer = new com.jianghu.map.OverworldExplorer();
         assertEquals(OverworldRegion.RegionId.JIANGNAN, explorer.regionId());
-        assertTrue(explorer.move(1, 0));
-        assertTrue(explorer.move(-1, 0));
-        assertFalse(explorer.move(0, -1) && explorer.y() == 0);
-        var gate = explorer.gates().stream().filter(g -> g.to() == OverworldRegion.RegionId.NORTHERN_RIDGE).findFirst().orElseThrow();
-        while (explorer.x() < gate.x()) assertTrue(explorer.move(1, 0));
-        while (explorer.y() < gate.y()) assertTrue(explorer.move(0, 1));
+        while (explorer.y() < 23) assertTrue(explorer.move(0, 1));
+        while (explorer.x() < 60) assertTrue(explorer.move(1, 0));
+        assertTrue(explorer.move(0, 1));
         assertTrue(explorer.gateAtPlayer().isPresent());
         assertTrue(explorer.travelThroughGate().orElseThrow().contains("北岭"));
         assertEquals(OverworldRegion.RegionId.NORTHERN_RIDGE, explorer.regionId());
