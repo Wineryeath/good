@@ -21,6 +21,7 @@ class GameWorldSaveServiceTest {
     @Test void worldSaveRestoresPlayerNpcLifeRelationshipsAndCalendar() throws Exception {
         GameWorld original = world(2, 350);
         original.player().changeHealth(-18); original.player().addItem("herb", 5); original.player().moveTo(12, 7);
+        original.overworld().move(1, 0);
         original.setWeather("连绵细雨");
         original.acceptQuest("herb-delivery"); original.quest("herb-delivery").orElseThrow().record("herb", 1);
         original.life("npc-inn").changeMood(13); original.life("npc-inn").creditMoney(260);
@@ -45,6 +46,8 @@ class GameWorldSaveServiceTest {
         assertEquals(original.player().health(), restored.player().health());
         assertEquals(original.player().inventory(), restored.player().inventory());
         assertEquals(original.player().x(), restored.player().x());
+        assertEquals(original.overworld().regionId(), restored.overworld().regionId());
+        assertEquals(original.overworld().x(), restored.overworld().x()); assertEquals(original.overworld().y(), restored.overworld().y());
         assertEquals(original.clock().day(), restored.clock().day());
         assertEquals(original.clock().minuteOfDay(), restored.clock().minuteOfDay());
         assertEquals(original.weather(), restored.weather());
