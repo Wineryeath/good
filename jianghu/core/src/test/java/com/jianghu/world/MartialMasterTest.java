@@ -39,4 +39,33 @@ class MartialMasterTest {
         player.moveTo(6, 12);
         assertThrows(IllegalStateException.class, () -> world.learnTechniqueFromMartialMaster(GameMap.starterTown()));
     }
+    @Test void dailyTrainingBuildsTrustAndUnlocksAdvancedSwordArt() {
+        Player player = new Player("旅人");
+        GameWorld world = new GameWorld(player, new WorldClock(1, 360), List.of());
+        GameMap map = GameMap.starterTown();
+        player.moveTo(6, 12);
+        world.learnFromMartialMaster(map);
+        world.learnTechniqueFromMartialMaster(map);
+        int beforeExperience = player.martialExperience();
+        for (int day = 0; day < 3; day++) {
+            assertTrue(world.trainWithMartialMaster(map).contains("武学经验 +20"));
+            if (day < 2) world.advanceMinutes(1440);
+        }
+        assertEquals(3, world.martialMasterFavor("master-river-sword"));
+        assertEquals(beforeExperience + 60, player.martialExperience());
+        long beforeMoney = player.moneyInWen();
+        assertTrue(world.learnAdvancedTechniqueFromMartialMaster(map).contains("穿云破月"));
+        assertTrue(player.knowsTechnique("cloud_piercing"));
+        assertEquals(beforeMoney - 360, player.moneyInWen());
+    }
+
+    @Test void masterWillNotTrainTheStudentTwiceInOneDay() {
+        Player player = new Player("旅人");
+        GameWorld world = new GameWorld(player, new WorldClock(1, 360), List.of());
+        GameMap map = GameMap.starterTown();
+        player.moveTo(6, 12);
+        world.learnFromMartialMaster(map);
+        world.trainWithMartialMaster(map);
+        assertThrows(IllegalStateException.class, () -> world.trainWithMartialMaster(map));
+    }
 }
