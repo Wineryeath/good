@@ -10,6 +10,7 @@ public final class Player {
     private long money = 2_000; // 以文为最小单位，100 文 = 1 两
     private int x = 9, y = 9;
     private final Map<String, Integer> inventory = new LinkedHashMap<>();
+    private final Map<com.jianghu.item.EquipmentItem.Slot, String> equipment = new java.util.EnumMap<>(com.jianghu.item.EquipmentItem.Slot.class);
 
     public Player(String name) { this.name = name == null || name.isBlank() ? "无名旅人" : name; }
     public String name() { return name; }
@@ -27,6 +28,23 @@ public final class Player {
     public int x() { return x; }
     public int y() { return y; }
     public Map<String,Integer> inventory() { return Collections.unmodifiableMap(inventory); }
+    public Map<com.jianghu.item.EquipmentItem.Slot, String> equipment() { return Collections.unmodifiableMap(equipment); }
+    public int attackPower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::attack).sum(); }
+    public int defensePower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::defense).sum(); }
+    /** 装备时自动将旧装备放回背包；新装备只有在成功扣除库存后才替换。 */
+    public boolean equip(String itemId) {
+        var item = com.jianghu.item.EquipmentCatalog.find(itemId).orElseThrow(() -> new IllegalArgumentException("这件物品不能装备"));
+        if (!removeItem(itemId, 1)) return false;
+        String previous = equipment.put(item.slot(), itemId);
+        if (previous != null) addItem(previous, 1);
+        return true;
+    }
+    public boolean unequip(com.jianghu.item.EquipmentItem.Slot slot) {
+        String previous = equipment.remove(slot);
+        if (previous == null) return false;
+        addItem(previous, 1);
+        return true;
+    }
     public void moveTo(int nx, int ny) { x = nx; y = ny; }
     public boolean spendStamina(int amount) {
         if (amount < 0) throw new IllegalArgumentException("体力消耗不能为负");
