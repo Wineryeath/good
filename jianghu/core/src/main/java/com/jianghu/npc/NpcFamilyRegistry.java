@@ -30,7 +30,6 @@ public final class NpcFamilyRegistry {
             throw new IllegalArgumentException("直系亲属不能结为配偶");
         spouses.put(firstNpcId, secondNpcId);
         spouses.put(secondNpcId, firstNpcId);
-        recordEvent(EventType.MARRIAGE, List.of(firstNpcId, secondNpcId), 1L, firstNpcId + " 与 " + secondNpcId + " 结为夫妻");
     }
 
     public void addChild(String parentNpcId, String childNpcId) {
