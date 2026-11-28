@@ -48,6 +48,7 @@ public final class GameWorld {
     private final Map<String, TradeCaravan> caravans = new LinkedHashMap<>();
     private long lastBusinessDay;
     private com.jianghu.combat.CombatEncounter activeCombat;
+    private com.jianghu.combat.RealtimeCombatEncounter activeRealtimeCombat;
     private final Map<String, Long> masterTrainingDays = new LinkedHashMap<>();
     private final Map<String, Integer> masterFavor = new LinkedHashMap<>();
     private final List<MartialMaster> martialMasters = List.of(new MartialMaster(
@@ -63,13 +64,35 @@ public final class GameWorld {
     }
     /** 发起一场山道遭遇战；战斗结束后保留战报供玩家查看。 */
     public com.jianghu.combat.CombatEncounter startBanditEncounter() {
-        if (activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
+        if ((activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
+                || (activeRealtimeCombat != null && activeRealtimeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING))
             throw new IllegalStateException("你正与敌人交手，不能再触发新的战斗");
         activeCombat = new com.jianghu.combat.CombatEncounter(player, new com.jianghu.combat.CombatEnemy(
             "road-bandit", "山道劫匪", "蒙面劫匪挥刀拦路，伺机夺取行旅财物。", 42, 11, 2, 120, 35, "herb", 1));
         return activeCombat;
     }
     public Optional<com.jianghu.combat.CombatEncounter> activeCombat() { return Optional.ofNullable(activeCombat); }
+    /** 启动带敌方预警、闪避判定与格挡结算的实时战斗。 */
+    public com.jianghu.combat.RealtimeCombatEncounter startRealtimeBanditEncounter() {
+        if ((activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
+                || (activeRealtimeCombat != null && activeRealtimeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING))
+            throw new IllegalStateException("你正与敌人交手，不能再触发新的战斗");
+        activeRealtimeCombat = new com.jianghu.combat.RealtimeCombatEncounter(player,
+            new com.jianghu.combat.CombatEnemy("road-bandit", "山道劫匪", "蒙面劫匪挥刀拦路，伺机夺取行旅财物。", 58, 12, 2, 150, 45, "herb", 1));
+        return activeRealtimeCombat;
+    }
+    public Optional<com.jianghu.combat.RealtimeCombatEncounter> activeRealtimeCombat() { return Optional.ofNullable(activeRealtimeCombat); }
+    public com.jianghu.combat.RealtimeCombatController.ActionResult realtimeCombatAction(com.jianghu.combat.CombatAction action) {
+        if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
+        return activeRealtimeCombat.perform(action);
+    }
+    public void updateRealtimeCombat(float deltaSeconds) {
+        if (activeRealtimeCombat != null) activeRealtimeCombat.update(deltaSeconds);
+    }
+    public String fleeRealtimeCombat() {
+        if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
+        return activeRealtimeCombat.flee();
+    }
     public List<MartialMaster> martialMasters() { return martialMasters; }
     /** 返回当前可接触的师傅；师傅固定驻守河畔演武场。 */
     public Optional<MartialMaster> nearbyMartialMaster(GameMap map) {
