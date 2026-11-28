@@ -29,6 +29,12 @@ public final class OverworldExplorer {
     public OverworldRegion region() { return region; }
     public List<Gate> gates() { return GATES.stream().filter(g -> g.from() == regionId).toList(); }
     public Optional<Gate> gateAtPlayer() { return gates().stream().filter(g -> g.x() == x && g.y() == y).findFirst(); }
+    public void restorePosition(OverworldRegion.RegionId savedRegion, int savedX, int savedY) {
+        if (savedRegion == null) throw new IllegalArgumentException("世界地图区域不能为空");
+        OverworldRegion next = OverworldRegionCatalog.find(savedRegion);
+        if (!next.isWalkable(savedX, savedY)) throw new IllegalArgumentException("世界地图存档坐标不可通行");
+        regionId = savedRegion; region = next; x = savedX; y = savedY;
+    }
     public boolean move(int dx, int dy) {
         if (Math.abs(dx) > 1 || Math.abs(dy) > 1 || (dx == 0 && dy == 0))
             throw new IllegalArgumentException("每次只能向相邻地块移动");
