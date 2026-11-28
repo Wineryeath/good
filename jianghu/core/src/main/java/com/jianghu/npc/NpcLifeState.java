@@ -130,6 +130,11 @@ public final class NpcLifeState {
             long wage = switch (role) {
                 case "茶摊老板" -> 18;
                 case "渔夫" -> 12;
+                case "药师" -> 20;
+                case "书生" -> 10;
+                case "教书先生" -> 22;
+                case "镖师" -> 24;
+                case "农夫" -> 8;
                 default -> 5;
             };
             moneyInWen += wage;
