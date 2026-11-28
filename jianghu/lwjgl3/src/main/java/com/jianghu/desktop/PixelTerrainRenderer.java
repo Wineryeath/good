@@ -98,7 +98,7 @@ public final class PixelTerrainRenderer {
             // Timber facade, layered tiled roof, lattice windows and a warm doorway.
             shapes.setColor(new Color(0.73f, 0.57f, 0.39f, 1f));
             shapes.rect(px + tile * 0.12f, py + tile * 0.12f, tile * 0.76f, tile * 0.53f);
-            shapes.setColor(ROBE_SHADE);
+            shapes.setColor(new Color(0.42f, 0.24f, 0.18f, 1f));
             shapes.rect(px + tile * 0.18f, py + tile * 0.18f, tile * 0.64f, tile * 0.06f);
             shapes.setColor(ROOF);
             shapes.rect(px + tile * 0.04f, py + tile * 0.62f, tile * 0.92f, tile * 0.22f);
