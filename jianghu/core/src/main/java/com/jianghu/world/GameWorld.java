@@ -68,7 +68,7 @@ public final class GameWorld {
         Npc parent = requireNpc(parentNpcId);
         Npc child = requireNpc(childNpcId);
         if (familyRegistry.parentsOf(childNpcId).contains(parentNpcId)) return;
-        life(childNpcId).initializeAge(0);
+        if (!life(childNpcId).ageInitialized()) life(childNpcId).initializeAge(0);
         List<String> parentIds = new java.util.ArrayList<>();
         parentIds.add(parentNpcId);
         familyRegistry.spouseOf(parentNpcId).ifPresent(parentIds::add);
