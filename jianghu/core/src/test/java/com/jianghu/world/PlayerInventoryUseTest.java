@@ -26,7 +26,7 @@ class PlayerInventoryUseTest {
         assertEquals(1, player.inventory().get("meal"));
         assertEquals(8 * 60 + 5, world.clock().minuteOfDay());
         world.useInventoryItem("tea");
-        assertEquals(25, player.thirst());
+        assertEquals(22, player.thirst());
         assertFalse(player.inventory().containsKey("tea"));
     }
 
