@@ -46,6 +46,12 @@ public final class NpcSocialGraph {
             .filter(b -> b.fromNpcId().equals(npcId) || b.toNpcId().equals(npcId)).toList();
     }
 
+    public NpcSocialGraphSnapshot snapshot() { return new NpcSocialGraphSnapshot(allRelations()); }
+    public void restoreSnapshot(NpcSocialGraphSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("社会关系快照不能为空");
+        bonds.clear();
+        for (Bond bond : snapshot.bonds()) connect(bond.fromNpcId(), bond.toNpcId(), bond.type(), bond.strength());
+    }
     private void validatePair(String from, String to) {
         if (from == null || to == null || !knownNpcIds.contains(from) || !knownNpcIds.contains(to))
             throw new IllegalArgumentException("关系中包含未知 NPC");
