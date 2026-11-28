@@ -501,7 +501,14 @@ public final class GameWorld {
         if (!caravan.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有商队领队可以招募成员");
         requireNpc(crewNpcId);
         if (!life(crewNpcId).alive()) throw new IllegalStateException("已故 NPC 不能加入商队");
-        caravan.addCrew(crewNpcId);
+        String profession = life(crewNpcId).profession().orElse(requireNpc(crewNpcId).role());
+        int combatStrength = switch (profession) {
+            case "镖师" -> 30;
+            case "武师", "侠客", "护院" -> 25;
+            case "捕快", "军士" -> 20;
+            default -> 5;
+        };
+        caravan.addCrew(crewNpcId, combatStrength);
         life(crewNpcId).remember("加入商队" + caravanId + "，随队前往" + caravan.destination().displayName());
     }
     /** 在出发地采购货物并装车，货款由领队个人承担。 */
