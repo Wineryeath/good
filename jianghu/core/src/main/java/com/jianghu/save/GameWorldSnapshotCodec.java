@@ -106,7 +106,7 @@ public final class GameWorldSnapshotCodec {
         putStringMap(out, "world.households", s.independentHouseholds()); putIntMap(out, "world.courtshipDays", s.courtshipDays());
         putLongMap(out, "world.masterTrainingDays", s.masterTrainingDays()); putIntMap(out, "world.masterFavor", s.masterFavor());
         putSet(out, "world.schoolMemberships", s.schoolMemberships());
-        putLongMap(out, "world.schoolTrainingDays", s.schoolTrainingDays()); putIntMap(out, "world.schoolFavor", s.schoolFavor());
+        putLongMap(out, "world.schoolTrainingDays", s.schoolTrainingDays()); putIntMap(out, "world.schoolFavor", s.schoolFavor()); putIntMap(out, "world.schoolContribution", s.schoolContribution());
         return Map.copyOf(out);
     }
     public static GameWorldSnapshot decode(Map<String, String> data) {
@@ -174,7 +174,8 @@ public final class GameWorldSnapshotCodec {
             num(data,"world.overworld.x"), num(data,"world.overworld.y"), longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"),
-            readSet(data,"world.schoolMemberships"), readLongMap(data,"world.schoolTrainingDays"), readIntMap(data,"world.schoolFavor"));
+            readSet(data,"world.schoolMemberships"), readLongMap(data,"world.schoolTrainingDays"), readIntMap(data,"world.schoolFavor"),
+            readIntMap(data,"world.schoolContribution"));
     }
     private static void put(Map<String,String> m,String k,Object v){m.put(k,String.valueOf(v));}
     private static String b64(String s){return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));}
