@@ -52,6 +52,16 @@ class RealtimeCombatEncounterTest {
         assertEquals(energy - 15, player.innerEnergy());
         assertEquals(80, player.stamina());
     }
+    @Test void learnedTechniqueUsesItsOwnResourceAndDamageValues() {
+        RealtimeCombatEncounter fight = encounter();
+        int stamina = fight.player().stamina();
+        int enemyHealth = fight.enemy().health();
+        var result = fight.performTechnique("basic_palm");
+        assertTrue(result.accepted());
+        assertEquals(stamina - 8, fight.player().stamina());
+        assertEquals(enemyHealth - 7, fight.enemy().health());
+        assertEquals(60, fight.player().innerEnergy());
+    }
     @Test void heavyAttackCanDefeatEnemyAndSettlesRewardOnce() {
         Player player = new Player("重剑客");
         RealtimeCombatEncounter fight = new RealtimeCombatEncounter(player,
