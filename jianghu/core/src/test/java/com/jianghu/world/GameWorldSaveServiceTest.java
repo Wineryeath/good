@@ -31,7 +31,7 @@ class GameWorldSaveServiceTest {
         var inn = original.foundNpcBusiness("npc-inn", "family-inn", "周家客栈", com.jianghu.business.BusinessType.INN, 120, 15, 8, 3000);
         inn.restock(com.jianghu.business.TradeGood.MEAL, 4, 25); inn.hire("npc-worker");
         original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).buy(7, com.jianghu.business.TradeGood.HERB);
-        var caravan = original.createTradeCaravan("npc-inn", "caravan-east", com.jianghu.business.MarketRegion.JIANGNAN, com.jianghu.business.MarketRegion.EASTERN_SEA);
+        var caravan = original.createTradeCaravan("npc-inn", "caravan-east", com.jianghu.business.MarketRegion.JIANGNAN, com.jianghu.business.MarketRegion.DONGHAI);
         original.addTradeCaravanCrew("npc-inn", "caravan-east", "npc-worker");
         caravan.load(com.jianghu.business.TradeGood.HERB, 5, 500); caravan.depart(500);
         original.advanceMinutes(70);
