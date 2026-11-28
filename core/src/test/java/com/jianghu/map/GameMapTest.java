@@ -9,6 +9,6 @@ class GameMapTest {
         assertFalse(map.isWalkable(-1,8));
     }
     @Test void findsNearbyInteractionPoint() {
-        assertEquals("tea-owner",GameMap.starterTown().nearestInteractable(10,5).orElseThrow().id());
+        assertEquals("tea-stall",GameMap.starterTown().nearestInteractable(10,5).orElseThrow().id());
     }
 }
