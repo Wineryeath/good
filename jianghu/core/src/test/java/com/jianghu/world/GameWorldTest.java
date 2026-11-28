@@ -303,4 +303,31 @@ class GameWorldTest {
         assertEquals("禾风小院",world.familyHouseholdOf("second").orElseThrow());
     }
 
+    @Test void parentCanTeachSchoolAgeChildAndProfessionImprovesLearning() {
+        Npc parent = new Npc("parent","夫子","教书先生",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(parent,child));
+        world.life("child").initializeAge(10);
+        world.addNpcChild("parent","child");
+        int gained = world.teachNpcChild("parent","child","识字",5);
+        assertEquals(8,gained);
+        assertEquals(8,world.life("child").education());
+        assertEquals("启蒙",world.life("child").educationStage());
+        assertTrue(world.life("child").memories().stream().anyMatch(m -> m.contains("识字")));
+        assertTrue(world.life("parent").memories().stream().anyMatch(m -> m.contains("教导孩子")));
+    }
+
+    @Test void onlyRegisteredParentsCanTeachAndChildrenMustBeSchoolAge() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        Npc stranger = new Npc("stranger","路人","学者",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(parent,child,stranger));
+        world.life("child").initializeAge(10);
+        world.addNpcChild("parent","child");
+        assertThrows(IllegalArgumentException.class,
+            () -> world.teachNpcChild("stranger","child","算学",5));
+        world.life("child").initializeAge(10);
+    }
+
+
 }
