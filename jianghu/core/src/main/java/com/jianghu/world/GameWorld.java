@@ -43,6 +43,7 @@ public final class GameWorld {
         Npc first = requireNpc(firstNpcId);
         Npc second = requireNpc(secondNpcId);
         familyRegistry.marry(firstNpcId, secondNpcId);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.MARRIAGE, List.of(firstNpcId, secondNpcId), clock.day(), first.name() + " 与 " + second.name() + " 结为夫妻");
         socialGraph.connect(firstNpcId, secondNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
         socialGraph.connect(secondNpcId, firstNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
         life(firstNpcId).changeMood(8);
@@ -59,6 +60,7 @@ public final class GameWorld {
         parentIds.add(parentNpcId);
         familyRegistry.spouseOf(parentNpcId).ifPresent(parentIds::add);
         for (String id : parentIds) familyRegistry.addChild(id, childNpcId);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.BIRTH, java.util.stream.Stream.concat(parentIds.stream(), java.util.stream.Stream.of(childNpcId)).toList(), clock.day(), "家中添了孩子" + child.name());
         for (String id : parentIds) {
             Npc familyParent = requireNpc(id);
             socialGraph.connect(id, childNpcId, NpcSocialGraph.RelationType.FAMILY, 85);
