@@ -222,4 +222,35 @@ class GameWorldTest {
         assertEquals(NpcFamilyRegistry.EventType.DEATH,world.familyRegistry().events().get(0).type());
     }
 
+    @Test void adultNpcCanEstablishAnIndependentHousehold() {
+        Npc npc = new Npc("adult","阿禾","居民",List.of(
+            new Npc.Schedule(6,18,"market-west",0),
+            new Npc.Schedule(18,6,"home",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,20*60),List.of(npc));
+        world.establishIndependentHousehold("adult","禾风小院");
+        assertEquals("禾风小院",world.independentHouseholdOf("adult").orElseThrow());
+        assertTrue(world.life("adult").memories().stream().anyMatch(m -> m.contains("独立居所")));
+        world.advanceMinutes(24*60);
+        assertEquals("禾风小院",world.npcs().get(0).id().equals("adult")
+            ? world.independentHouseholdOf("adult").orElseThrow() : "");
+    }
+
+    @Test void underageNpcCannotEstablishIndependentHousehold() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(parent,child));
+        world.addNpcChild("parent","child");
+        assertThrows(IllegalStateException.class,
+            () -> world.establishIndependentHousehold("child","河畔小屋"));
+        assertTrue(world.independentHouseholdOf("child").isEmpty());
+    }
+
+    @Test void npcCannotEstablishTwoIndependentHouseholds() {
+        Npc npc = new Npc("adult","阿禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(npc));
+        world.establishIndependentHousehold("adult","禾风小院");
+        assertThrows(IllegalStateException.class,
+            () -> world.establishIndependentHousehold("adult","听雨别院"));
+    }
+
 }
