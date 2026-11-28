@@ -261,9 +261,7 @@ public final class JianghuGame extends ApplicationAdapter {
             for (GameWorld.NpcPosition npc : world.npcPositions(map))
                 PixelCharacterRenderer.draw(shapes, ox+npc.x()*tile+tile/2, oy+npc.y()*tile+tile/2-5, .78f, NPC_IDLE_ANIMATION);
             PixelCharacterRenderer.draw(shapes, ox+world.player().x()*tile+tile/2, oy+world.player().y()*tile+tile/2-8, 1.15f, playerAnimation);
-            world.activeRealtimeCombat().filter(fight -> fight.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
-                .ifPresent(fight -> PixelCharacterRenderer.draw(shapes,
-                    ox+world.player().x()*tile+tile*1.55f, oy+world.player().y()*tile+tile/2-8, 1.0f, ENEMY_IDLE_ANIMATION));
+
         }
         shapes.end();
 
@@ -279,6 +277,12 @@ public final class JianghuGame extends ApplicationAdapter {
             heroCenterX = ox + world.player().x() * tile + tile / 2f;
             heroFeetY = oy + world.player().y() * tile + tile / 2f - 8f;
         }
+        world.activeRealtimeCombat().filter(fight -> fight.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+            .ifPresent(fight -> {
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                PixelCharacterRenderer.draw(shapes, heroCenterX + tile * 1.05f, heroFeetY, 1.0f, ENEMY_IDLE_ANIMATION);
+                shapes.end();
+            });
         batch.begin();
         if (!artAssets.drawHero(batch, playerAnimation.state(), playerAnimation.stateTime(),
                 heroCenterX, heroFeetY, tile * 1.35f, playerAnimation.facing())) {
