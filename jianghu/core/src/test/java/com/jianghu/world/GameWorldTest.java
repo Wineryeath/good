@@ -3,6 +3,7 @@ package com.jianghu.world;
 import com.jianghu.character.Player;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
+import com.jianghu.npc.NpcFamilyRegistry;
 import com.jianghu.time.WorldClock;
 import org.junit.jupiter.api.Test;
 import java.util.List;
