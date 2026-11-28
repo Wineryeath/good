@@ -32,7 +32,7 @@ public final class RealtimeCombatController {
             case DODGE, LIGHT_STEP -> Phase.DODGING;
             case BLOCK -> Phase.BLOCKING;
         };
-        if (phase == Phase.DODGING) dodgeInvulnerability = 0.22f;
+        if (phase == Phase.DODGING) dodgeInvulnerability = 0.42f;
         return new ActionResult(true, action == CombatAction.DODGE ? "侧身闪避" : action == CombatAction.BLOCK ? "架势格挡" : "招式发动", action.staminaCost(), comboCount);
     }
     public void update(float deltaSeconds) {
