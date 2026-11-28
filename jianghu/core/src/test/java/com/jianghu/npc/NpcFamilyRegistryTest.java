@@ -32,6 +32,6 @@ class NpcFamilyRegistryTest {
         family.addChild("a", "b");
         family.addChild("b", "c");
         assertThrows(IllegalArgumentException.class, () -> family.addChild("c", "a"));
-        assertThrows(IllegalStateException.class, () -> family.addChild("c", "b"));
+        assertThrows(IllegalArgumentException.class, () -> family.addChild("c", "b"));
     }
 }
