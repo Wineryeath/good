@@ -15,6 +15,7 @@ public final class NpcLifeState {
     private int energy = 85;
     private int mood = 60;
     private int education;
+    private String profession;
     private long moneyInWen = 500;
     private int health = 100;
     private boolean alive = true;
@@ -55,6 +56,13 @@ public final class NpcLifeState {
     public int energy() { return energy; }
     public int mood() { return mood; }
     public int education() { return education; }
+    public java.util.Optional<String> profession() { return java.util.Optional.ofNullable(profession); }
+    public void chooseProfession(String value) {
+        if (!alive) throw new IllegalStateException("已故 NPC 无法选择职业");
+        if (value == null || value.isBlank()) throw new IllegalArgumentException("职业名称不能为空");
+        if (profession != null) throw new IllegalStateException("已经选择职业");
+        profession = value;
+    }
     public String educationStage() {
         if (education < 20) return "启蒙";
         if (education < 50) return "识字";
