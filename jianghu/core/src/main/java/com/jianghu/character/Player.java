@@ -3,6 +3,11 @@ package com.jianghu.character;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import com.jianghu.combat.MartialArtStyle;
+import com.jianghu.combat.MartialTechnique;
 
 public final class Player {
     private final String name;
@@ -13,6 +18,10 @@ public final class Player {
     private final Map<com.jianghu.item.EquipmentItem.Slot, String> equipment = new java.util.EnumMap<>(com.jianghu.item.EquipmentItem.Slot.class);
     private int martialExperience;
     private int martialLevel = 1;
+    private int innerEnergy = 60;
+    private MartialArtStyle martialStyle = MartialArtStyle.FIST;
+    private final Set<MartialArtStyle> learnedStyles = EnumSet.of(MartialArtStyle.FIST);
+    private final Set<String> learnedTechniques = new LinkedHashSet<>(Set.of("basic_palm"));
 
     public Player(String name) { this.name = name == null || name.isBlank() ? "无名旅人" : name; }
     public String name() { return name; }
@@ -34,6 +43,34 @@ public final class Player {
     public int martialExperience() { return martialExperience; }
     public int martialLevel() { return martialLevel; }
     public int martialPower() { return martialLevel * 2; }
+    public int innerEnergy() { return innerEnergy; }
+    public MartialArtStyle martialStyle() { return martialStyle; }
+    public Set<MartialArtStyle> learnedStyles() { return Set.copyOf(learnedStyles); }
+    public Set<String> learnedTechniques() { return Set.copyOf(learnedTechniques); }
+    public void learnStyle(MartialArtStyle style) {
+        if (style == null) throw new IllegalArgumentException("武学流派不能为空");
+        learnedStyles.add(style);
+    }
+    public void selectStyle(MartialArtStyle style) {
+        if (style == null || !learnedStyles.contains(style)) throw new IllegalStateException("尚未学会这门武学");
+        martialStyle = style;
+    }
+    public void learnTechnique(String techniqueId) {
+        MartialTechnique technique = MartialTechnique.find(techniqueId)
+            .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
+        if (!learnedStyles.contains(technique.style())) throw new IllegalStateException("尚未掌握该招式所属的武学流派");
+        learnedTechniques.add(techniqueId);
+    }
+    public boolean knowsTechnique(String techniqueId) { return learnedTechniques.contains(techniqueId); }
+    public boolean spendInnerEnergy(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("内力消耗不能为负");
+        if (innerEnergy < amount) return false;
+        innerEnergy -= amount; return true;
+    }
+    public void recoverInnerEnergy(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("内力恢复不能为负");
+        innerEnergy = Math.min(100, innerEnergy + amount);
+    }
     /** 武学经验每满百点提升一重境界，境界提升会增强基础攻击。 */
     public int gainMartialExperience(int amount) {
         if (amount < 0) throw new IllegalArgumentException("武学经验不能为负");
@@ -46,8 +83,8 @@ public final class Player {
         }
         return levels;
     }
-    public int attackPower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::attack).sum(); }
-    public int defensePower() { return equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::defense).sum(); }
+    public int attackPower() { return martialStyle.attackBonus() + equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::attack).sum(); }
+    public int defensePower() { return Math.max(0, martialStyle.defenseBonus()) + equipment.values().stream().map(com.jianghu.item.EquipmentCatalog::find).flatMap(java.util.Optional::stream).mapToInt(com.jianghu.item.EquipmentItem::defense).sum(); }
     /** 装备时自动将旧装备放回背包；新装备只有在成功扣除库存后才替换。 */
     public boolean equip(String itemId) {
         var item = com.jianghu.item.EquipmentCatalog.find(itemId).orElseThrow(() -> new IllegalArgumentException("这件物品不能装备"));
