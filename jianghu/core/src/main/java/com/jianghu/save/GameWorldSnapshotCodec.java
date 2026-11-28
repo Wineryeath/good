@@ -168,7 +168,8 @@ public final class GameWorldSnapshotCodec {
             unb64(req(data,p+"from")),unb64(req(data,p+"to")),NpcSocialGraph.RelationType.valueOf(req(data,p+"type")),num(data,p+"strength")));}
         NpcFamilySnapshot family=new NpcFamilySnapshot(spouses,parents,familyEvents); NpcSocialGraphSnapshot social=new NpcSocialGraphSnapshot(bonds);
         return new GameWorldSnapshot(player, longNum(data,"world.day"), num(data,"world.minute"), unb64(req(data,"world.weather")),
-            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), caravans, family, social, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
+            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), caravans, family, social, com.jianghu.map.OverworldRegion.RegionId.valueOf(req(data,"world.overworld.region")),
+            num(data,"world.overworld.x"), num(data,"world.overworld.y"), longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"));
     }
