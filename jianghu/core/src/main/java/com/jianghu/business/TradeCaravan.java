@@ -15,6 +15,7 @@ public final class TradeCaravan {
     private final MarketRegion destination;
     private final Set<String> crew = new LinkedHashSet<>();
     private final Map<String, Integer> crewStrength = new LinkedHashMap<>();
+    private final Map<String, Integer> crewWounds = new LinkedHashMap<>();
     private final Map<TradeGood, Cargo> cargo = new LinkedHashMap<>();
     private State state = State.PREPARING;
     private int remainingMinutes;
@@ -37,6 +38,8 @@ public final class TradeCaravan {
     public MarketRegion destination() { return destination; }
     public Set<String> crew() { return Set.copyOf(crew); }
     public Map<String, Integer> crewStrength() { return Map.copyOf(crewStrength); }
+    public Map<String, Integer> crewWounds() { return Map.copyOf(crewWounds); }
+    public Set<String> woundedCrew() { return Set.copyOf(crewWounds.keySet()); }
     public int escortStrength() { return crewStrength.values().stream().mapToInt(Integer::intValue).sum(); }
     public int lostCargoQuantity() { return lostCargoQuantity; }
     public Map<TradeGood, Cargo> cargo() { return Map.copyOf(cargo); }
@@ -93,7 +96,11 @@ public final class TradeCaravan {
                             item.totalCostInWen() * remaining / item.quantity()));
                     }
                 }
-                lastEvent = "商路遇袭，护卫奋力抵抗，仍有" + lostCargoQuantity + "件货物被劫走";
+                String weakest = crewStrength.entrySet().stream()
+                    .min(Map.Entry.comparingByValue()).orElseThrow().getKey();
+                int wound = strength >= 40 ? 10 : 25;
+                crewWounds.put(weakest, wound);
+                lastEvent = "商路遇袭，护卫奋力抵抗，" + weakest + "受伤（" + wound + "点），仍有" + lostCargoQuantity + "件货物被劫走";
             }
         }
         if (remainingMinutes <= 0) { remainingMinutes = 0; state = State.ARRIVED; lastEvent = "商队抵达" + destination.displayName(); }
