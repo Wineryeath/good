@@ -61,7 +61,9 @@ public final class JianghuGame extends ApplicationAdapter {
             if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) dy = 1;
             if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) dy = -1;
             if (dx != 0 || dy != 0) {
-                if (overworldMode) {
+                if (world.insideMartialSchool()) {
+                    if (world.moveInsideMartialSchool(dx, dy)) playerAnimation.walk(dx);
+                } else if (overworldMode) {
                     if (overworld.move(dx, dy)) {
                         playerAnimation.walk(dx); world.advanceMinutes(3);
                         overworld.travelThroughGate().ifPresent(message -> interactionMessage = message);
@@ -83,8 +85,15 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.F5)) saveGame();
         if (Gdx.input.isKeyJustPressed(Input.Keys.F9)) loadGame();
         if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
-            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) interactionMessage = "交战之中无法打开世界地图。";
+            if (world.insideMartialSchool()) {
+                try { interactionMessage = world.leaveMartialSchool(); }
+                catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+            } else if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) interactionMessage = "交战之中无法打开世界地图。";
             else { overworldMode = !overworldMode; interactionMessage = overworldMode ? "已打开六域世界地图，沿关隘可前往其他地域。" : "已返回乌篷镇。"; }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && overworldMode) {
+            try { interactionMessage = world.enterNearbyMartialSchool(); }
+            catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) useItem("meal");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
@@ -169,7 +178,10 @@ public final class JianghuGame extends ApplicationAdapter {
             } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
-            world.interactWithNearbyPoint(map).ifPresentOrElse(
+            if (world.insideMartialSchool()) {
+                try { interactionMessage = world.interactInsideMartialSchool(); }
+                catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+            } else world.interactWithNearbyPoint(map).ifPresentOrElse(
                 line -> interactionMessage = line,
                 () -> interactionMessage = "附近没有可以交互的地点。");
         }
@@ -187,7 +199,24 @@ public final class JianghuGame extends ApplicationAdapter {
         Gdx.gl.glClearColor(.08f,.15f,.15f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         float tile = overworldMode ? 12f : 28f, ox = overworldMode ? 16f : 36f, oy = overworldMode ? 48f : 80f;
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        if (overworldMode) {
+        if (world.insideMartialSchool()) {
+            var interior = world.activeMartialSchoolInterior().orElseThrow();
+            var indoorMap = interior.map();
+            for (int y=0;y<indoorMap.height();y++) for(int x=0;x<indoorMap.width();x++) {
+                Color terrain = switch (indoorMap.tileAt(x,y)) {
+                    case WALL -> new Color(.22f,.25f,.24f,1);
+                    case BUILDING -> new Color(.43f,.29f,.22f,1);
+                    case PATH -> new Color(.68f,.58f,.43f,1);
+                    case GRASS -> new Color(.38f,.54f,.34f,1);
+                    case WATER -> new Color(.25f,.48f,.58f,1);
+                    case BRIDGE -> new Color(.55f,.39f,.25f,1);
+                };
+                shapes.setColor(terrain); shapes.rect(ox+x*tile,oy+y*tile,tile-1,tile-1);
+            }
+            shapes.setColor(new Color(.82f,.72f,.48f,1));
+            for (var point : indoorMap.points()) shapes.circle(ox+point.x()*tile+tile/2,oy+point.y()*tile+tile/2,5);
+            PixelCharacterRenderer.draw(shapes,ox+world.interiorX()*tile+tile/2,oy+world.interiorY()*tile+tile/2-8,1.05f,playerAnimation);
+        } else if (overworldMode) {
             var region = overworld.region();
             for (int y = 0; y < region.height(); y++) for (int x = 0; x < region.width(); x++) {
                 Color terrain = switch (region.terrainAt(x, y)) {
@@ -239,7 +268,7 @@ public final class JianghuGame extends ApplicationAdapter {
         shapes.end();
 
         batch.begin(); font.setColor(Color.WHITE);
-        font.draw(batch,overworldMode ? "一人一江湖  |  世界地图 · "+com.jianghu.map.OverworldExplorer.regionName(overworld.regionId()) : "一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
+        font.draw(batch,world.insideMartialSchool() ? "一人一江湖  |  "+world.activeMartialSchoolInterior().orElseThrow().name() : overworldMode ? "一人一江湖  |  世界地图 · "+com.jianghu.map.OverworldExplorer.regionName(overworld.regionId()) : "一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"需求：饥饿 "+world.player().hunger()+" 口渴 "+world.player().thirst()+"  心情 "+world.player().morale(),36,78);
@@ -261,7 +290,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,overworldMode ? "世界地图：WASD行走 E查看门派 M拜师 L修习 P读谱 H静修 R疗伤 O返回城镇 F5存档 F9读档 金色标记为关隘/门派" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
+        font.draw(batch,world.insideMartialSchool() ? "门派内院：WASD行走 F使用附近设施 O离开内院；金色圆点为演武坪、藏经阁、静修室与医馆" : overworldMode ? "世界地图：WASD行走 E查看门派 Enter进入内院 M拜师 L修习 P读谱 H静修 R疗伤 O返回城镇 F5存档 F9读档" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
@@ -285,14 +314,17 @@ public final class JianghuGame extends ApplicationAdapter {
             if(fight.status()==com.jianghu.combat.CombatEncounter.Status.ONGOING) font.draw(batch,"X 出招攻击    Z 脱身撤退",Gdx.graphics.getWidth()/2f-190,Gdx.graphics.getHeight()/2f-82);
         }
         font.draw(batch, interactionMessage, 500, 58);
-        if (!overworldMode) {
+        if (world.insideMartialSchool()) {
+            var indoorMap = world.activeMartialSchoolInterior().orElseThrow().map();
+            indoorMap.nearestInteractable(world.interiorX(),world.interiorY()).ifPresent(point -> font.draw(batch,"附近："+point.name()+"（按 F 使用）",500,36));
+        } else if (!overworldMode) {
             for (GameWorld.NpcPosition npc : world.npcPositions(map)) font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
             world.nearbyMartialMaster(map).ifPresent(master -> font.draw(batch,master.name()+" · "+master.title(),ox+6*tile-28,oy+14*tile));
             map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point -> font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         } else {
             overworld.gateAtPlayer().ifPresent(gate -> font.draw(batch,"关隘："+gate.name()+"（继续前进即可通行）",500,36));
             com.jianghu.map.MartialSchoolSite.nearby(overworld.regionId(), overworld.x(), overworld.y()).ifPresent(site ->
-                font.draw(batch, "门派驻地："+site.school().name()+"（E查看 M拜师 L修习）", 500, 36));
+                font.draw(batch, "门派驻地："+site.school().name()+"（E查看 Enter进入 M拜师 L修习）", 500, 36));
         }
         batch.end();
     }
