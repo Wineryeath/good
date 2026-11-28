@@ -532,4 +532,23 @@ class GameWorldTest {
         assertTrue(world.life("merchant").memories().stream().anyMatch(m -> m.contains("途中损失货物")));
     }
 
+    @Test void playerCanJoinCaravanAndEarnEscortReputation() {
+        Npc merchant = new Npc("merchant", "行商", "居民", List.of(), 0);
+        Player player = new Player("江湖客");
+        GameWorld world = new GameWorld(player, new WorldClock(1, 8 * 60), List.of(merchant));
+        world.life("merchant").creditMoney(10000);
+        var caravan = world.createTradeCaravan("merchant", "player-escort", MarketRegion.JIANGNAN, MarketRegion.BEILING);
+        world.joinPlayerTradeCaravan("player-escort");
+        assertTrue(caravan.crew().contains("@player"));
+        assertEquals(90, player.stamina());
+        assertThrows(IllegalStateException.class, () -> world.joinPlayerTradeCaravan("player-escort"));
+        world.loadTradeCaravan("merchant", "player-escort", TradeGood.TEA, 5);
+        int travelMinutes = world.departTradeCaravan("merchant", "player-escort");
+        assertThrows(IllegalStateException.class, () -> world.joinPlayerTradeCaravan("player-escort"));
+        world.advanceMinutes(travelMinutes);
+        assertEquals(TradeCaravan.State.COMPLETED, caravan.state());
+        assertEquals(2, player.reputation());
+        assertEquals(95, player.stamina());
+    }
+
 }
