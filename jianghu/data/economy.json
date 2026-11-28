@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "currency": {
+    "id": "silver_tael",
+    "name": "两",
+    "minorUnit": "文",
+    "conversion": 100
+  },
+  "attributes": {
+    "health": {
+      "min": 0,
+      "max": 100,
+      "default": 100
+    },
+    "stamina": {
+      "min": 0,
+      "max": 100,
+      "default": 100
+    },
+    "hunger": {
+      "min": 0,
+      "max": 100,
+      "default": 20
+    },
+    "thirst": {
+      "min": 0,
+      "max": 100,
+      "default": 15
+    },
+    "morale": {
+      "min": 0,
+      "max": 100,
+      "default": 70
+    },
+    "reputation": {
+      "min": -100,
+      "max": 100,
+      "default": 0
+    }
+  },
+  "items": [
+    {
+      "id": "bamboo_rod",
+      "name": "竹鱼竿",
+      "category": "tool",
+      "stack": 1,
+      "basePrice": 800,
+      "durability": 40,
+      "tags": [
+        "fishing"
+      ],
+      "description": "以韧竹制成，适合初学者。"
+    },
+    {
+      "id": "dried_fish",
+      "name": "鱼干",
+      "category": "food",
+      "stack": 20,
+      "basePrice": 200,
+      "effects": {
+        "hunger": -18,
+        "stamina": 12
+      },
+      "tags": [
+        "food"
+      ]
+    },
+    {
+      "id": "wild_herb",
+      "name": "野生草药",
+      "category": "material",
+      "stack": 30,
+      "basePrice": 300,
+      "tags": [
+        "herb",
+        "medicine"
+      ]
+    },
+    {
+      "id": "loquat",
+      "name": "枇杷",
+      "category": "food",
+      "stack": 30,
+      "basePrice": 120,
+      "effects": {
+        "hunger": -8,
+        "health": 2
+      },
+      "tags": [
+        "fruit",
+        "seasonal"
+      ]
+    },
+    {
+      "id": "fresh_fish",
+      "name": "鲜鱼",
+      "category": "food",
+      "stack": 20,
+      "basePrice": 400,
+      "effects": {
+        "hunger": -12
+      },
+      "tags": [
+        "fish",
+        "perishable"
+      ],
+      "shelfLifeHours": 24
+    }
+  ],
+  "marketRules": {
+    "buyMultiplier": 1.2,
+    "sellMultiplier": 0.65,
+    "minPrice": 1,
+    "priceVariance": {
+      "min": 0.9,
+      "max": 1.1
+    },
+    "reputationDiscountPerPoint": 0.001,
+    "stockRefresh": "daily"
+  },
+  "gathering": {
+    "baseStaminaCost": 5,
+    "successChance": 1,
+    "respawnByResource": true
+  },
+  "fishing": {
+    "staminaCost": 4,
+    "castSeconds": {
+      "min": 3,
+      "max": 12
+    },
+    "biteWindowSeconds": 2.5,
+    "baseCatchChance": 0.62,
+    "weatherModifiers": {
+      "晴": 1,
+      "薄雾": 1.1,
+      "小雨": 1.2,
+      "暴雨": 0.45
+    },
+    "timeModifiers": {
+      "dawn": 1.25,
+      "day": 0.9,
+      "dusk": 1.15,
+      "night": 0.7
+    }
+  }
+}
