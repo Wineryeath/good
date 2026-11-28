@@ -168,6 +168,41 @@ public final class GameWorld {
         life(npcId).remember("玩家曾欺骗自己：" + description);
     }
 
+
+    /** 家庭成员发生冲突：谱系保留，社会关系暂时转为仇敌。 */
+    public void familyConflict(String firstNpcId, String secondNpcId, String description) {
+        Npc first = requireNpc(firstNpcId);
+        Npc second = requireNpc(secondNpcId);
+        requireDescription(description);
+        if (!familyRegistry.familyOf(firstNpcId).contains(secondNpcId)
+                && !familyRegistry.familyOf(secondNpcId).contains(firstNpcId))
+            throw new IllegalArgumentException("双方不是已登记的家庭成员");
+        socialGraph.connect(firstNpcId, secondNpcId, NpcSocialGraph.RelationType.ENEMY, -30);
+        socialGraph.connect(secondNpcId, firstNpcId, NpcSocialGraph.RelationType.ENEMY, -30);
+        life(firstNpcId).changeMood(-6);
+        life(secondNpcId).changeMood(-6);
+        life(firstNpcId).remember("与家人" + second.name() + "发生争执：" + description);
+        life(secondNpcId).remember("与家人" + first.name() + "发生争执：" + description);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.CONFLICT, List.of(firstNpcId, secondNpcId), clock.day(), description);
+    }
+
+    /** 和解恢复家庭关系并记录事件。 */
+    public void reconcileFamily(String firstNpcId, String secondNpcId, String description) {
+        Npc first = requireNpc(firstNpcId);
+        Npc second = requireNpc(secondNpcId);
+        requireDescription(description);
+        if (!familyRegistry.familyOf(firstNpcId).contains(secondNpcId)
+                && !familyRegistry.familyOf(secondNpcId).contains(firstNpcId))
+            throw new IllegalArgumentException("双方不是已登记的家庭成员");
+        socialGraph.connect(firstNpcId, secondNpcId, NpcSocialGraph.RelationType.FAMILY, 70);
+        socialGraph.connect(secondNpcId, firstNpcId, NpcSocialGraph.RelationType.FAMILY, 70);
+        life(firstNpcId).changeMood(8);
+        life(secondNpcId).changeMood(8);
+        life(firstNpcId).remember("与家人" + second.name() + "和解：" + description);
+        life(secondNpcId).remember("与家人" + first.name() + "和解：" + description);
+        familyRegistry.recordEvent(NpcFamilyRegistry.EventType.RECONCILIATION, List.of(firstNpcId, secondNpcId), clock.day(), description);
+    }
+
     private Npc requireNpc(String npcId) {
         return npcs.stream().filter(n -> n.id().equals(npcId)).findFirst()
             .orElseThrow(() -> new IllegalArgumentException("未知 NPC：" + npcId));
