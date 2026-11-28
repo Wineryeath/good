@@ -60,6 +60,7 @@ public final class NpcBusiness {
     public DailyReport lastReport() { return lastReport; }
     public Set<String> employees() { return Set.copyOf(employees); }
     public Map<TradeGood, Integer> inventory() { return Map.copyOf(inventory); }
+    public Map<TradeGood, Long> inventoryCostBasis() { return Map.copyOf(inventoryCostBasis); }
     public int stockOf(TradeGood good) { return inventory.getOrDefault(good, 0); }
     /** 采购专营商品并计入库存成本；不得透支产业金库。 */
     public long restock(TradeGood good, int quantity, long unitPriceInWen) {
@@ -151,6 +152,16 @@ public final class NpcBusiness {
         retainedProfitInWen -= distributed;
         treasuryInWen -= distributed;
         return Map.copyOf(result);
+    }
+    public void restoreSnapshot(NpcBusinessSnapshot snapshot) {
+        if (snapshot == null || !id.equals(snapshot.id()) || !name.equals(snapshot.name()) || type != snapshot.type()
+                || dailyIncomeInWen != snapshot.dailyIncomeInWen() || dailyOperatingCostInWen != snapshot.dailyOperatingCostInWen()
+                || dailyWagePerEmployeeInWen != snapshot.dailyWagePerEmployeeInWen())
+            throw new IllegalArgumentException("产业存档与当前产业定义不匹配");
+        ownerNpcId = snapshot.ownerNpcId(); treasuryInWen = snapshot.treasuryInWen(); debtInWen = snapshot.debtInWen();
+        retainedProfitInWen = snapshot.retainedProfitInWen(); settledDays = snapshot.settledDays(); level = snapshot.level();
+        employees.clear(); employees.addAll(snapshot.employees()); inventory.clear(); inventory.putAll(snapshot.inventory());
+        inventoryCostBasis.clear(); inventoryCostBasis.putAll(snapshot.inventoryCostBasis()); lastReport = snapshot.lastReport();
     }
     public void transferOwnership(String newOwnerNpcId) {
         if (newOwnerNpcId == null || newOwnerNpcId.isBlank()) throw new IllegalArgumentException("新主人无效");
