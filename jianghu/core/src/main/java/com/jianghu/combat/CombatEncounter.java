@@ -51,13 +51,13 @@ public final class CombatEncounter {
         if (!player.knowsTechnique(techniqueId)) throw new IllegalStateException("尚未学会这招");
         if (player.martialStyle() != technique.style()) throw new IllegalStateException("当前武学路数与招式不合");
         if (player.stamina() < technique.staminaCost() || player.innerEnergy() < technique.innerCost())
-            throw new IllegalStateException("体力或内力不足，无法施展" + technique.name());
+            throw new IllegalStateException("体力或内力不足，无法施展" + technique.displayName());
         player.spendStamina(technique.staminaCost());
         player.spendInnerEnergy(technique.innerCost());
         rounds++;
         int damage = Math.max(1, 3 + player.attackPower() + player.martialPower() + technique.power() - enemy.defense());
         enemy.takeDamage(damage);
-        log.add("你施展" + technique.name() + "，对" + enemy.name() + "造成" + damage + "点伤害。");
+        log.add("你施展" + technique.displayName() + "，对" + enemy.name() + "造成" + damage + "点伤害。");
         if (enemy.defeated()) {
             status = Status.WON; player.addMoney(enemy.rewardWen());
             if (enemy.dropItem()!=null && !enemy.dropItem().isBlank() && enemy.dropCount()>0) player.addItem(enemy.dropItem(),enemy.dropCount());
