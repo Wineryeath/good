@@ -317,7 +317,7 @@ class GameWorldTest {
         assertTrue(world.life("parent").memories().stream().anyMatch(m -> m.contains("教导孩子")));
     }
 
-    @Test void onlyRegisteredParentsCanTeachAndChildrenMustBeSchoolAge() {
+    @Test void onlyRegisteredParentsCanTeachChildren() {
         Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
         Npc child = new Npc("child","小禾","居民",List.of(),0);
         Npc stranger = new Npc("stranger","路人","学者",List.of(),0);
