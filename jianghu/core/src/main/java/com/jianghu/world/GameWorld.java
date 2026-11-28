@@ -427,6 +427,18 @@ public final class GameWorld {
         schoolContribution.clear(); schoolContribution.putAll(snapshot.schoolContribution());
         activeCombat = null; activeRealtimeCombat = null;
     }
+    /** 从昏迷中恢复：支付最多 200 文的诊治费，休养半日后回到乌篷镇。 */
+    public String recoverFromDefeat() {
+        if (player.health() > 0) throw new IllegalStateException("你目前并未昏迷，无需急救");
+        long fee = Math.min(player.moneyInWen(), 200L);
+        player.addMoney(-fee);
+        player.changeHealth(35);
+        player.recoverStamina(30);
+        player.moveTo(9, 9);
+        clearFinishedEncounters();
+        advanceMinutes(720);
+        return "你在镇中医馆昏睡半日后醒来，健康恢复至 35，体力恢复至 30，支付诊治费 " + fee + " 文。";
+    }
     public Player player() { return player; }
     public com.jianghu.map.OverworldExplorer overworld() { return overworldExplorer; }
     public WorldClock clock() { return clock; }
