@@ -356,4 +356,32 @@ class GameWorldTest {
     }
 
 
+    @Test void apprenticeLearnsMentorsProfessionAndCanChooseItWithoutSchoolEducation() {
+        Npc mentor = new Npc("mentor","老周","药师",List.of(),0);
+        Npc apprentice = new Npc("apprentice","小满","学徒",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(mentor,apprentice));
+        world.life("mentor").initializeAge(40);
+        world.life("apprentice").initializeAge(15);
+        world.life("mentor").study(30);
+        world.chooseNpcProfession("mentor","药师");
+        world.socialGraph().connect("mentor","apprentice",com.jianghu.social.NpcSocialGraph.RelationType.MENTOR,70);
+        for (int i = 0; i < 3; i++) world.trainNpcApprentice("mentor","apprentice",10);
+        assertEquals(39,world.life("apprentice").vocationalTraining("药师"));
+        world.life("apprentice").initializeAge(18);
+        world.chooseNpcProfession("apprentice","药师");
+        assertEquals("药师",world.life("apprentice").profession().orElseThrow());
+        assertTrue(world.life("apprentice").memories().stream().anyMatch(m -> m.contains("跟随老周学习药师技艺")));
+    }
+
+    @Test void vocationalTrainingRequiresAnEstablishedMentorBond() {
+        Npc mentor = new Npc("mentor","老周","药师",List.of(),0);
+        Npc apprentice = new Npc("apprentice","小满","学徒",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(mentor,apprentice));
+        world.life("mentor").initializeAge(40);
+        world.life("apprentice").initializeAge(15);
+        world.life("mentor").study(30);
+        world.chooseNpcProfession("mentor","药师");
+        assertThrows(IllegalArgumentException.class,() -> world.trainNpcApprentice("mentor","apprentice",5));
+    }
+
 }
