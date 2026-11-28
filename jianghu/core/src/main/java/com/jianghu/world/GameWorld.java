@@ -8,6 +8,8 @@ import com.jianghu.npc.NpcLifeState;
 import com.jianghu.time.WorldClock;
 import com.jianghu.social.NpcRelationship;
 import com.jianghu.social.DialogueService;
+import com.jianghu.social.NpcSocialGraph;
+import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
@@ -21,12 +23,15 @@ public final class GameWorld {
     private String weather = "晴";
     private final Map<String, NpcRelationship> relationships = new LinkedHashMap<>();
     private final Map<String, NpcLifeState> npcLives = new LinkedHashMap<>();
+    private final NpcSocialGraph socialGraph;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
+        this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
     public List<Npc> npcs() { return npcs; }
+    public NpcSocialGraph socialGraph() { return socialGraph; }
     public String weather() { return weather; }
     public void setWeather(String weather) {
         if (weather == null || weather.isBlank()) throw new IllegalArgumentException("天气不能为空");
@@ -64,6 +69,48 @@ public final class GameWorld {
         if (npcs.stream().noneMatch(n -> n.id().equals(npcId))) throw new IllegalArgumentException("未知 NPC：" + npcId);
         return relationships.computeIfAbsent(npcId, ignored -> new NpcRelationship());
     }
+    /** 送礼：礼物价值以文计，产生有限好感；贵重礼物也会略增信任。 */
+    public void giveGiftToNpc(String npcId, String itemId, int valueInWen) {
+        Npc npc = requireNpc(npcId);
+        if (itemId == null || itemId.isBlank() || valueInWen <= 0)
+            throw new IllegalArgumentException("礼物与正价值不能为空");
+        int favorGain = Math.max(1, Math.min(15, valueInWen / 10));
+        NpcRelationship bond = relationship(npcId);
+        bond.changeFavor(favorGain);
+        if (valueInWen >= 100) bond.changeTrust(2);
+        life(npcId).changeMood(3);
+        life(npcId).remember("玩家赠予" + itemId + "（价值 " + valueInWen + " 文）");
+    }
+
+    /** 帮助 NPC：同时改善好感、信任与心情，并留下可追溯记忆。 */
+    public void helpNpc(String npcId, String description) {
+        Npc npc = requireNpc(npcId);
+        requireDescription(description);
+        relationship(npcId).changeFavor(8);
+        relationship(npcId).changeTrust(6);
+        life(npcId).changeMood(5);
+        life(npcId).remember("玩家帮助了自己：" + description);
+    }
+
+    /** 欺骗 NPC 会显著损害信任；即使玩家暂时获利，关系也会留下后果。 */
+    public void deceiveNpc(String npcId, String description) {
+        requireNpc(npcId);
+        requireDescription(description);
+        relationship(npcId).changeFavor(-12);
+        relationship(npcId).changeTrust(-25);
+        life(npcId).changeMood(-8);
+        life(npcId).remember("玩家曾欺骗自己：" + description);
+    }
+
+    private Npc requireNpc(String npcId) {
+        return npcs.stream().filter(n -> n.id().equals(npcId)).findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("未知 NPC：" + npcId));
+    }
+    private static void requireDescription(String description) {
+        if (description == null || description.isBlank())
+            throw new IllegalArgumentException("行为描述不能为空");
+    }
+
     public Optional<String> talkToNearby(GameMap map) {
         return nearbyNpc(map).flatMap(position -> npcs.stream()
             .filter(n -> n.id().equals(position.npcId())).findFirst())
