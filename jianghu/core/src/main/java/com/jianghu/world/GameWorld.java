@@ -48,6 +48,12 @@ public final class GameWorld {
         Npc first = requireNpc(firstNpcId);
         Npc second = requireNpc(secondNpcId);
         familyRegistry.marry(firstNpcId, secondNpcId);
+        String sharedHome = independentHouseholds.get(firstNpcId);
+        if (sharedHome == null) sharedHome = independentHouseholds.get(secondNpcId);
+        if (sharedHome != null) {
+            independentHouseholds.put(firstNpcId, sharedHome);
+            independentHouseholds.put(secondNpcId, sharedHome);
+        }
         familyRegistry.recordEvent(NpcFamilyRegistry.EventType.MARRIAGE, List.of(firstNpcId, secondNpcId), clock.day(), first.name() + " 与 " + second.name() + " 结为夫妻");
         socialGraph.connect(firstNpcId, secondNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
         socialGraph.connect(secondNpcId, firstNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
@@ -67,6 +73,8 @@ public final class GameWorld {
         parentIds.add(parentNpcId);
         familyRegistry.spouseOf(parentNpcId).ifPresent(parentIds::add);
         for (String id : parentIds) familyRegistry.addChild(id, childNpcId);
+        String familyHome = parentIds.stream().map(independentHouseholds::get).filter(java.util.Objects::nonNull).findFirst().orElse(null);
+        if (familyHome != null) independentHouseholds.put(childNpcId, familyHome);
         familyRegistry.recordEvent(NpcFamilyRegistry.EventType.BIRTH, java.util.stream.Stream.concat(parentIds.stream(), java.util.stream.Stream.of(childNpcId)).toList(), clock.day(), "家中添了孩子" + child.name());
         for (String id : parentIds) {
             Npc familyParent = requireNpc(id);
@@ -186,6 +194,12 @@ public final class GameWorld {
         independentHouseholds.put(npcId, householdPlace);
         state.remember("成年后建立独立居所：" + householdPlace);
         state.changeMood(5);
+    }
+
+    /** 查询 NPC 当前所属的家庭住所；未建立独立住所时返回空。 */
+    public Optional<String> familyHouseholdOf(String npcId) {
+        requireNpc(npcId);
+        return Optional.ofNullable(independentHouseholds.get(npcId));
     }
 
     public Optional<String> independentHouseholdOf(String npcId) {
