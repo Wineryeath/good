@@ -22,13 +22,14 @@ public final class JianghuGame extends ApplicationAdapter {
     private GameWorld world;
     private GameMap map;
     private float moveCooldown;
+    private String interactionMessage = "沿着河埠慢慢探索，留意镇中人物的作息。";
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
         map = GameMap.starterTown();
         world = new GameWorld(new Player("无名旅人"), new WorldClock(1, 360), List.of(
             new Npc("npc-tea-owner", "沈掌柜", "茶摊老板", List.of(
-                new Npc.Schedule(6,11,"tea-stall",0), new Npc.Schedule(11,14,"market",0),
+                new Npc.Schedule(6,11,"tea-stall",0), new Npc.Schedule(11,14,"market-west",0),
                 new Npc.Schedule(14,20,"tea-stall",0), new Npc.Schedule(20,6,"home",0)), 0),
             new Npc("npc-old-fisher", "陆老七", "渔夫", List.of(
                 new Npc.Schedule(5,10,"east-bank",0), new Npc.Schedule(10,16,"river-hut",0),
@@ -53,6 +54,11 @@ public final class JianghuGame extends ApplicationAdapter {
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            world.nearbyNpc(map).ifPresentOrElse(
+                npc -> interactionMessage = npc.name() + "（" + npc.role() + "）：" + npc.schedulePlace(),
+                () -> interactionMessage = "附近没有可以交谈的人。");
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) Gdx.app.exit();
 
         Gdx.gl.glClearColor(.08f,.15f,.15f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -65,6 +71,10 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         shapes.setColor(new Color(.55f,.38f,.24f,1)); shapes.rect(ox+6*tile,oy+2*tile,4*tile,3*tile);
         shapes.rect(ox+3*tile,oy+8*tile,3*tile,3*tile);
+        shapes.setColor(new Color(.78f,.30f,.20f,1));
+        for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
+            shapes.circle(ox+npc.x()*tile+tile/2,oy+npc.y()*tile+tile/2,8);
+        }
         shapes.setColor(Color.GOLD); shapes.circle(ox+world.player().x()*tile+tile/2,oy+world.player().y()*tile+tile/2,10);
         shapes.end();
 
@@ -72,7 +82,8 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   银两："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文   体力："+world.player().stamina(),36,48);
-        font.draw(batch,"WASD / 方向键移动    空格：等待半时辰    ESC：退出",36,25);
+        font.draw(batch,"WASD / 方向键移动    E：与附近人物交谈    空格：等待半时辰    ESC：退出",36,25);
+        font.draw(batch, interactionMessage, 500, 48);
         batch.end();
     }
     @Override public void dispose() { shapes.dispose(); batch.dispose(); font.dispose(); }
