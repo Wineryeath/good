@@ -39,7 +39,10 @@ public final class GameMap {
         return new GameMap("wupeng-town",grid,List.of(
             new MapPoint("inn-rain","听雨客栈",MapPoint.Kind.INN,7,3,1),
             new MapPoint("market-west","乌篷集市",MapPoint.Kind.MARKET,4,9,1),
-            new MapPoint("tea-owner","沈掌柜",MapPoint.Kind.NPC,10,4,1),
+            new MapPoint("tea-stall","茶摊",MapPoint.Kind.NPC,10,4,1),
+            new MapPoint("home","居民宅院",MapPoint.Kind.LANDMARK,8,5,0),
+            new MapPoint("east-bank","东河埠",MapPoint.Kind.LANDMARK,17,7,0),
+            new MapPoint("river-hut","河边渔棚",MapPoint.Kind.LANDMARK,18,10,0),
             new MapPoint("old-fisher","陆老七",MapPoint.Kind.NPC,17,7,1),
             new MapPoint("herb-bank-01","河岸草药",MapPoint.Kind.RESOURCE,9,11,0),
             new MapPoint("bridge-stone","石拱桥",MapPoint.Kind.LANDMARK,11,8,1)
