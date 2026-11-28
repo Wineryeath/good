@@ -254,4 +254,28 @@ class GameWorldTest {
             () -> world.establishIndependentHousehold("adult","听雨别院"));
     }
 
+    @Test void adultNpcsWithMutualFriendshipCanMarryAfterThirtyDaysTogether() {
+        Npc first = new Npc("first","阿青","居民",List.of(new Npc.Schedule(0,24,"village-square",0)),0);
+        Npc second = new Npc("second","阿月","居民",List.of(new Npc.Schedule(0,24,"village-square",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,0),List.of(first,second));
+        world.socialGraph().connect("first","second",com.jianghu.social.NpcSocialGraph.RelationType.FRIEND,60);
+        world.socialGraph().connect("second","first",com.jianghu.social.NpcSocialGraph.RelationType.FRIEND,60);
+        world.advanceMinutes(30 * 24 * 60);
+        assertEquals("second",world.familyRegistry().spouseOf("first").orElseThrow());
+        assertEquals(NpcFamilyRegistry.EventType.MARRIAGE,
+            world.familyRegistry().events().get(0).type());
+        assertTrue(world.life("first").memories().stream().anyMatch(m -> m.contains("结为夫妻")));
+        assertTrue(world.life("second").memories().stream().anyMatch(m -> m.contains("结为夫妻")));
+    }
+
+    @Test void npcCourtshipRequiresMutualFriendshipAndSharedDailyLocation() {
+        Npc first = new Npc("first","阿青","居民",List.of(new Npc.Schedule(0,24,"east-village",0)),0);
+        Npc second = new Npc("second","阿月","居民",List.of(new Npc.Schedule(0,24,"west-village",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,0),List.of(first,second));
+        world.socialGraph().connect("first","second",com.jianghu.social.NpcSocialGraph.RelationType.FRIEND,80);
+        world.advanceMinutes(35 * 24 * 60);
+        assertTrue(world.familyRegistry().spouseOf("first").isEmpty());
+        assertEquals(0,world.courtshipDays("first","second"));
+    }
+
 }
