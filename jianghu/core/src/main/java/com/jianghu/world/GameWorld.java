@@ -57,6 +57,7 @@ public final class GameWorld {
     private final java.util.Set<String> schoolMemberships = new java.util.LinkedHashSet<>();
     private final Map<String, Long> schoolTrainingDays = new LinkedHashMap<>();
     private final Map<String, Integer> schoolFavor = new LinkedHashMap<>();
+    private final Map<String, Integer> schoolContribution = new LinkedHashMap<>();
     private final List<MartialMaster> martialMasters = List.of(new MartialMaster(
         "master-river-sword", "顾长风", "河畔剑师", MartialArtStyle.SWORD,
         "cloud_sword", 120, 180, 0));
@@ -185,6 +186,27 @@ public final class GameWorld {
     public List<com.jianghu.combat.MartialSchool> martialSchools() { return com.jianghu.combat.MartialSchool.all(); }
     public java.util.Set<String> schoolMemberships() { return java.util.Set.copyOf(schoolMemberships); }
     public int martialSchoolFavor(String schoolId) { return schoolFavor.getOrDefault(schoolId, 0); }
+    public int martialSchoolContribution(String schoolId) { return schoolContribution.getOrDefault(schoolId, 0); }
+    public com.jianghu.combat.MartialSchoolRank martialSchoolRank(String schoolId) {
+        if (!schoolMemberships.contains(schoolId)) return com.jianghu.combat.MartialSchoolRank.OUTSIDER;
+        return com.jianghu.combat.MartialSchoolRank.forContribution(martialSchoolContribution(schoolId));
+    }
+    /** 每 100 文捐献折算 10 点门派贡献。 */
+    public String donateToNearbyMartialSchool(long amountInWen) {
+        var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派山门"));
+        String schoolId = site.schoolId();
+        if (!schoolMemberships.contains(schoolId)) throw new IllegalStateException("只有本门弟子才能向门中捐献");
+        if (amountInWen < 100 || amountInWen % 100 != 0) throw new IllegalArgumentException("捐献金额须为 100 文的整数倍");
+        if (player.moneyInWen() < amountInWen) throw new IllegalStateException("银钱不足，无法完成捐献");
+        player.addMoney(-amountInWen);
+        int before = martialSchoolRank(schoolId).ordinal();
+        int gained = Math.toIntExact(amountInWen / 10);
+        int total = schoolContribution.merge(schoolId, gained, Integer::sum);
+        var rank = martialSchoolRank(schoolId);
+        String message = "你向" + site.school().name() + "捐献 " + amountInWen + " 文，门派贡献 +" + gained + "，累计 " + total + "。当前品阶：" + rank.title() + "。";
+        if (rank.ordinal() > before) message += " 你的勤勉与奉献得到认可，晋升为" + rank.title() + "！";
+        return message;
+    }
     public String inspectNearbyMartialSchool() {
         var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("此处没有门派驻地；请前往武林群山、北岭或西蜀寻找山门"));
         var school = site.school();
@@ -206,7 +228,7 @@ public final class GameWorld {
         if (player.reputation() < school.entryReputation()) throw new IllegalStateException("江湖声望不足，" + school.name() + "暂不收徒；需要声望 " + school.entryReputation());
         if (player.moneyInWen() < school.entryFeeInWen()) throw new IllegalStateException("束脩不足，入门需 " + school.entryFeeInWen() + " 文");
         player.addMoney(-school.entryFeeInWen()); player.learnStyle(school.style()); player.selectStyle(school.style());
-        schoolMemberships.add(school.id()); schoolFavor.putIfAbsent(school.id(), 0);
+        schoolMemberships.add(school.id()); schoolFavor.putIfAbsent(school.id(), 0); schoolContribution.putIfAbsent(school.id(), 0);
         return "你在" + site.landmark() + "向" + school.name() + "执弟子礼，正式入门。习得" + school.style().displayName() + "，门规：" + school.philosophy();
     }
     /** 每个门派每日可修习一次；三次修习后师门传授该门派独门招式。 */
@@ -217,8 +239,9 @@ public final class GameWorld {
         if (schoolTrainingDays.getOrDefault(school.id(), -1L) == clock.day()) throw new IllegalStateException("今日已在本门修习过，明日再来");
         if (!player.spendStamina(12)) throw new IllegalStateException("体力不足，无法完成门中修习");
         schoolTrainingDays.put(school.id(), clock.day()); int favor = schoolFavor.merge(school.id(), 1, Integer::sum);
+        int contribution = schoolContribution.merge(school.id(), 10, Integer::sum);
         int levels = player.gainMartialExperience(18); advanceMinutes(60);
-        String result = "你在" + school.name() + "依门规修习一个时辰，武学经验 +18，师门信任 " + favor + "/3。";
+        String result = "你在" + school.name() + "依门规修习一个时辰，武学经验 +18，师门信任 " + favor + "/3，门派贡献 +10（累计 " + contribution + "）。";
         if (levels > 0) result += "武学境界提升至第" + player.martialLevel() + "重。";
         if (favor >= 3 && !player.knowsTechnique(school.signatureTechnique())) {
             player.learnTechnique(school.signatureTechnique());
@@ -341,7 +364,7 @@ public final class GameWorld {
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
             weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots,
             familyRegistry.snapshot(), socialGraph.snapshot(), overworldExplorer.regionId(), overworldExplorer.x(), overworldExplorer.y(), lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
-            independentHouseholds, courtshipDays, masterTrainingDays, masterFavor, schoolMemberships, schoolTrainingDays, schoolFavor);
+            independentHouseholds, courtshipDays, masterTrainingDays, masterFavor, schoolMemberships, schoolTrainingDays, schoolFavor, schoolContribution);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
     public void restoreSnapshot(GameWorldSnapshot snapshot) {
@@ -391,6 +414,7 @@ public final class GameWorld {
         schoolMemberships.clear(); schoolMemberships.addAll(snapshot.schoolMemberships());
         schoolTrainingDays.clear(); schoolTrainingDays.putAll(snapshot.schoolTrainingDays());
         schoolFavor.clear(); schoolFavor.putAll(snapshot.schoolFavor());
+        schoolContribution.clear(); schoolContribution.putAll(snapshot.schoolContribution());
         activeCombat = null; activeRealtimeCombat = null;
     }
     public Player player() { return player; }
