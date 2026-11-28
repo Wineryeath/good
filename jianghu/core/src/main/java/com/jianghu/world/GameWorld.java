@@ -861,6 +861,40 @@ public final class GameWorld {
         return "你在" + point.name() + "喝茶歇息一个时辰，花费 30 文，恢复了体力与健康。";
     }
 
+    /** 在附近 NPC 处打短工；劳动消耗体力与时间，收入取决于雇主行当。 */
+    public long workForNearbyNpc(GameMap map) {
+        NpcPosition position = nearbyNpc(map).orElseThrow(() -> new IllegalStateException("附近没有可以雇用你的 NPC"));
+        Npc employer = requireNpc(position.npcId());
+        if (!life(employer.id()).alive()) throw new IllegalStateException("雇主已不在人世");
+        if (!player.spendStamina(15)) throw new IllegalStateException("体力不足，无法继续做工");
+        long wage = switch (employer.role()) {
+            case "茶摊老板" -> 45;
+            case "渔夫" -> 50;
+            case "药师" -> 55;
+            case "农夫" -> 35;
+            default -> 25;
+        };
+        advanceMinutes(120);
+        player.addMoney(wage);
+        relationship(employer.id()).changeFavor(2);
+        life(employer.id()).remember("雇玩家帮忙做工两个时辰，支付 " + wage + " 文");
+        return wage;
+    }
+
+    /** 将背包中一件礼物送给附近 NPC；成功后才消耗物品并改变关系。 */
+    public void giftToNearbyNpc(GameMap map, String itemId) {
+        NpcPosition position = nearbyNpc(map).orElseThrow(() -> new IllegalStateException("附近没有可以赠礼的人"));
+        Npc recipient = requireNpc(position.npcId());
+        if (!life(recipient.id()).alive()) throw new IllegalStateException("对方已不在人世");
+        long value = switch (itemId) {
+            case "herb" -> 42; case "tea" -> 36; case "meal" -> 24;
+            case "medicine" -> 96; case "fish" -> 30; case "grain" -> 18;
+            case "vegetable" -> 12;
+            default -> throw new IllegalArgumentException("这件物品不适合作为礼物");
+        };
+        if (!player.removeItem(itemId, 1)) throw new IllegalStateException("背包中没有可赠送的" + itemId);
+        giveGiftToNpc(recipient.id(), itemId, (int) value);
+    }
     public Optional<String> talkToNearby(GameMap map) {
         return nearbyNpc(map).flatMap(position -> npcs.stream()
             .filter(n -> n.id().equals(position.npcId())).findFirst())
