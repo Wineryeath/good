@@ -30,6 +30,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private int previousPlayerHealth = 100;
     private final com.jianghu.map.OverworldExplorer overworld = new com.jianghu.map.OverworldExplorer();
     private boolean overworldMode;
+    private final com.jianghu.save.GameWorldSaveService saveService = new com.jianghu.save.GameWorldSaveService();
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
@@ -78,6 +79,8 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SHIFT_LEFT)) performRealtimeAction(CombatAction.HEAVY_ATTACK);
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) inventoryOpen = !inventoryOpen;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F5)) saveGame();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F9)) loadGame();
         if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
             if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) interactionMessage = "交战之中无法打开世界地图。";
             else { overworldMode = !overworldMode; interactionMessage = overworldMode ? "已打开六域世界地图，沿关隘可前往其他地域。" : "已返回乌篷镇。"; }
@@ -231,7 +234,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,overworldMode ? "世界地图：WASD行走 O返回城镇 金色方块为区域关隘" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 ESC退出",36,16);
+        font.draw(batch,overworldMode ? "世界地图：WASD行走 O返回城镇 F5存档 F9读档 金色方块为区域关隘" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
@@ -295,6 +298,16 @@ public final class JianghuGame extends ApplicationAdapter {
             case SPEAR -> "piercing_spear"; case STAFF -> "sweeping_staff";
         };
         useTechnique(id);
+    }
+    private java.nio.file.Path savePath() { return Gdx.files.local("saves/slot-1.sav").file().toPath(); }
+    private void saveGame() {
+        try { saveService.save(savePath(), world); interactionMessage = "存档成功：玩家、NPC生活、关系、世界时间与天气已保存。"; }
+        catch (java.io.IOException | IllegalArgumentException ex) { interactionMessage = "存档失败：" + ex.getMessage(); }
+    }
+    private void loadGame() {
+        try { world.restoreSnapshot(saveService.load(savePath())); previousPlayerHealth = world.player().health();
+            playerAnimation.revive(); interactionMessage = "读档成功：已恢复玩家、NPC生活、关系、世界时间与天气。"; }
+        catch (java.io.IOException | IllegalArgumentException ex) { interactionMessage = "读档失败：" + ex.getMessage(); }
     }
     private void startCombat() {
         try { world.startRealtimeBanditEncounter(); interactionMessage = "山道劫匪出现！注意敌人出刀预警：X轻击、Shift重击、V格挡、空格闪避。"; }
