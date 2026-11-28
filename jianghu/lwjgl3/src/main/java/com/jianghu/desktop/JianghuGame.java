@@ -88,9 +88,9 @@ public final class JianghuGame extends ApplicationAdapter {
             try { interactionMessage = world.learnTechniqueFromMartialMaster(map); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) useTechnique("basic_palm");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueForCurrentStyle();
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechnique("cloud_piercing");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) useTechniqueOrRealtimeSkill("basic_palm");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueOrRealtimeSkillForCurrentStyle();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechniqueOrRealtimeSkill("cloud_piercing");
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             try { interactionMessage = world.trainWithMartialMaster(map); playerAnimation.train(); }
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
@@ -193,7 +193,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 V格挡 空格闪避 Z撤退 C遇敌 I背包 ESC退出",36,16);
+        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9武学绝招 V格挡 空格闪避 Z撤退 C遇敌 I背包 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
@@ -203,7 +203,7 @@ public final class JianghuGame extends ApplicationAdapter {
             font.draw(batch,"你的生命："+world.player().health()+"   体力："+world.player().stamina()+"   连击："+fight.controller().comboCount(),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+22);
             var rtLogs=fight.log();
             for(int i=Math.max(0,rtLogs.size()-3);i<rtLogs.size();i++) font.draw(batch,rtLogs.get(i),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-18-(i-Math.max(0,rtLogs.size()-3))*24);
-            if(fight.status()==com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING) font.draw(batch,"X 轻击  Shift 重击  V 格挡  空格闪避  Z 撤退",Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-88);
+            if(fight.status()==com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING) font.draw(batch,"X 轻击  Shift 重击  7/8/9绝招  V 格挡  空格闪避  Z 撤退",Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-88);
         }
         if (world.activeCombat().isPresent()) {
             var fight = world.activeCombat().orElseThrow();
@@ -230,6 +230,21 @@ public final class JianghuGame extends ApplicationAdapter {
             var fight = world.activeCombat().orElseThrow(() -> new IllegalStateException("当前没有进行中的战斗"));
             interactionMessage = fight.useTechnique(id);
         } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+    }
+    private void useTechniqueOrRealtimeSkill(String id) {
+        if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) {
+            var technique = com.jianghu.combat.MartialTechnique.find(id);
+            if (technique.isEmpty() || !world.player().knowsTechnique(id)) { interactionMessage = "尚未学会这门招式。"; return; }
+            if (technique.get().style() != world.player().martialStyle()) { interactionMessage = "当前武学路数与招式不合。"; return; }
+            performRealtimeAction(CombatAction.SKILL);
+        } else useTechnique(id);
+    }
+    private void useTechniqueOrRealtimeSkillForCurrentStyle() {
+        String id = switch (world.player().martialStyle()) {
+            case FIST -> "iron_palm"; case SWORD -> "cloud_sword"; case SABER -> "wind_saber";
+            case SPEAR -> "piercing_spear"; case STAFF -> "sweeping_staff";
+        };
+        useTechniqueOrRealtimeSkill(id);
     }
     private void useTechniqueForCurrentStyle() {
         String id = switch (world.player().martialStyle()) {
