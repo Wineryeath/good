@@ -5,6 +5,7 @@ import com.jianghu.map.GameMap;
 import com.jianghu.map.MapPoint;
 import com.jianghu.npc.Npc;
 import com.jianghu.npc.NpcLifeState;
+import com.jianghu.npc.NpcFamilyRegistry;
 import com.jianghu.time.WorldClock;
 import com.jianghu.social.NpcRelationship;
 import com.jianghu.social.DialogueService;
@@ -24,15 +25,49 @@ public final class GameWorld {
     private final Map<String, NpcRelationship> relationships = new LinkedHashMap<>();
     private final Map<String, NpcLifeState> npcLives = new LinkedHashMap<>();
     private final NpcSocialGraph socialGraph;
+    private final NpcFamilyRegistry familyRegistry;
     private final Map<String, Long> lastSocialDay = new LinkedHashMap<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
+        this.familyRegistry = new NpcFamilyRegistry(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
     public List<Npc> npcs() { return npcs; }
     public NpcSocialGraph socialGraph() { return socialGraph; }
+    public NpcFamilyRegistry familyRegistry() { return familyRegistry; }
+
+    /** 登记婚姻，并同步社会关系、双方心情与人生记忆。 */
+    public void marryNpcs(String firstNpcId, String secondNpcId) {
+        Npc first = requireNpc(firstNpcId);
+        Npc second = requireNpc(secondNpcId);
+        familyRegistry.marry(firstNpcId, secondNpcId);
+        socialGraph.connect(firstNpcId, secondNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
+        socialGraph.connect(secondNpcId, firstNpcId, NpcSocialGraph.RelationType.FAMILY, 80);
+        life(firstNpcId).changeMood(8);
+        life(secondNpcId).changeMood(8);
+        life(firstNpcId).remember("与" + second.name() + "结为夫妻");
+        life(secondNpcId).remember("与" + first.name() + "结为夫妻");
+    }
+
+    /** 登记亲子关系；若父母已婚，自动将另一方也登记为孩子的父母。 */
+    public void addNpcChild(String parentNpcId, String childNpcId) {
+        Npc parent = requireNpc(parentNpcId);
+        Npc child = requireNpc(childNpcId);
+        List<String> parentIds = new java.util.ArrayList<>();
+        parentIds.add(parentNpcId);
+        familyRegistry.spouseOf(parentNpcId).ifPresent(parentIds::add);
+        for (String id : parentIds) familyRegistry.addChild(id, childNpcId);
+        for (String id : parentIds) {
+            Npc familyParent = requireNpc(id);
+            socialGraph.connect(id, childNpcId, NpcSocialGraph.RelationType.FAMILY, 85);
+            socialGraph.connect(childNpcId, id, NpcSocialGraph.RelationType.FAMILY, 85);
+            life(id).changeMood(10);
+            life(id).remember("家中添了孩子" + child.name());
+            life(childNpcId).remember(familyParent.name() + "成为自己的父母");
+        }
+    }
     public String weather() { return weather; }
     public void setWeather(String weather) {
         if (weather == null || weather.isBlank()) throw new IllegalArgumentException("天气不能为空");
