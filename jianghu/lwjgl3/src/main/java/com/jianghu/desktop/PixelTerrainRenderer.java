@@ -95,9 +95,26 @@ public final class PixelTerrainRenderer {
             shapes.setColor(ROOF); shapes.rect(px + 2f, py + tile * 0.20f, tile - 4f, 2f);
             shapes.rect(px + 2f, py + tile * 0.72f, tile - 4f, 2f);
         } else if (kind == TileType.BUILDING) {
-            shapes.setColor(ROOF); shapes.rect(px + 1f, py + tile * 0.62f, tile - 2f, tile * 0.24f);
-            shapes.setColor(GOLD); shapes.rect(px + tile * 0.18f, py + tile * 0.56f, tile * 0.64f, 2f);
-            shapes.setColor(new Color(0.20f, 0.14f, 0.12f, 1f)); shapes.rect(px + tile * 0.42f, py, tile * 0.16f, tile * 0.30f);
+            // Timber facade, layered tiled roof, lattice windows and a warm doorway.
+            shapes.setColor(new Color(0.73f, 0.57f, 0.39f, 1f));
+            shapes.rect(px + tile * 0.12f, py + tile * 0.12f, tile * 0.76f, tile * 0.53f);
+            shapes.setColor(ROBE_SHADE);
+            shapes.rect(px + tile * 0.18f, py + tile * 0.18f, tile * 0.64f, tile * 0.06f);
+            shapes.setColor(ROOF);
+            shapes.rect(px + tile * 0.04f, py + tile * 0.62f, tile * 0.92f, tile * 0.22f);
+            shapes.rect(px + tile * 0.12f, py + tile * 0.82f, tile * 0.76f, tile * 0.06f);
+            shapes.setColor(GOLD);
+            shapes.rect(px + tile * 0.10f, py + tile * 0.58f, tile * 0.80f, 2f);
+            shapes.rect(px + tile * 0.22f, py + tile * 0.28f, tile * 0.18f, tile * 0.16f);
+            shapes.rect(px + tile * 0.60f, py + tile * 0.28f, tile * 0.18f, tile * 0.16f);
+            shapes.setColor(new Color(0.18f, 0.15f, 0.13f, 1f));
+            shapes.rect(px + tile * 0.29f, py + tile * 0.29f, tile * 0.04f, tile * 0.14f);
+            shapes.rect(px + tile * 0.67f, py + tile * 0.29f, tile * 0.04f, tile * 0.14f);
+            shapes.rect(px + tile * 0.42f, py + tile * 0.12f, tile * 0.16f, tile * 0.30f);
+            shapes.setColor(new Color(0.95f, 0.68f, 0.30f, 1f));
+            shapes.rect(px + tile * 0.44f, py + tile * 0.18f, tile * 0.12f, tile * 0.12f);
+            shapes.setColor(new Color(0.30f, 0.18f, 0.12f, 1f));
+            shapes.rect(px + tile * 0.47f, py + tile * 0.12f, tile * 0.06f, tile * 0.24f);
         } else if (kind == TileType.PATH) {
             shapes.setColor(new Color(0.83f, 0.74f, 0.57f, 0.8f)); shapes.rect(px + tile * 0.18f, py + tile * 0.28f, tile * 0.18f, 2f);
         }
