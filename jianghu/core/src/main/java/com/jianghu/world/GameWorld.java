@@ -168,7 +168,7 @@ public final class GameWorld {
     /** 已正式择业的成年师傅可指导登记为徒弟的 NPC，积累对应职业技艺。 */
     public int trainNpcApprentice(String mentorNpcId, String apprenticeNpcId, int effort) {
         Npc mentor = requireNpc(mentorNpcId);
-        requireNpc(apprenticeNpcId);
+        Npc apprentice = requireNpc(apprenticeNpcId);
         NpcLifeState mentorLife = life(mentorNpcId);
         NpcLifeState apprenticeLife = life(apprenticeNpcId);
         if (!mentorLife.alive() || mentorLife.ageYears() < 18 || mentorLife.profession().isEmpty())
@@ -185,7 +185,7 @@ public final class GameWorld {
         int gained = effort + 3;
         apprenticeLife.trainProfession(craft, gained);
         apprenticeLife.remember("跟随" + mentor.name() + "学习" + craft + "技艺，成长 " + gained);
-        mentorLife.remember("传授" + life(apprenticeNpcId).profession().orElse("徒弟") + craft + "技艺");
+        mentorLife.remember("传授" + apprentice.name() + craft + "技艺");
         mentorLife.changeMood(1);
         return gained;
     }
