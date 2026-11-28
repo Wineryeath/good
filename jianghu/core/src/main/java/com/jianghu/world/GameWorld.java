@@ -31,6 +31,8 @@ public final class GameWorld {
     public record NpcPosition(String npcId, String name, String role, int x, int y, String schedulePlace) {}
     private final Player player;
     private final com.jianghu.map.OverworldExplorer overworldExplorer = new com.jianghu.map.OverworldExplorer();
+    private com.jianghu.map.MartialSchoolInterior activeSchoolInterior;
+    private int interiorX, interiorY;
     private final WorldClock clock;
     private final List<Npc> npcs;
     private String weather = "晴";
@@ -100,6 +102,36 @@ public final class GameWorld {
     public String fleeRealtimeCombat() {
         if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
         return activeRealtimeCombat.flee();
+    }
+    public boolean insideMartialSchool() { return activeSchoolInterior != null; }
+    public Optional<com.jianghu.map.MartialSchoolInterior> activeMartialSchoolInterior() { return Optional.ofNullable(activeSchoolInterior); }
+    public int interiorX() { if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院"); return interiorX; }
+    public int interiorY() { if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院"); return interiorY; }
+    /** 从门派山门进入对应内院；访客可参观，门内功能仍由弟子身份校验。 */
+    public String enterNearbyMartialSchool() {
+        if (insideMartialSchool()) throw new IllegalStateException("你已经身处门派内院");
+        var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("请先走到门派山门附近"));
+        activeSchoolInterior = com.jianghu.map.MartialSchoolInterior.create(site.schoolId());
+        interiorX = activeSchoolInterior.entranceX(); interiorY = activeSchoolInterior.entranceY();
+        return "你穿过" + site.landmark() + "，进入" + activeSchoolInterior.name() + "。院内设有演武坪、藏经阁、静修室与医馆。";
+    }
+    public boolean moveInsideMartialSchool(int dx, int dy) {
+        if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院");
+        if (Math.abs(dx)>1 || Math.abs(dy)>1 || (dx==0 && dy==0)) throw new IllegalArgumentException("每次只能移动一格");
+        int nx=interiorX+dx, ny=interiorY+dy;
+        if (!activeSchoolInterior.map().isWalkable(nx,ny)) return false;
+        interiorX=nx; interiorY=ny; advanceMinutes(2); return true;
+    }
+    public String leaveMartialSchool() {
+        if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院");
+        String name=activeSchoolInterior.name(); activeSchoolInterior=null; interiorX=0; interiorY=0;
+        return "你离开"+name+"，回到山门外。";
+    }
+    public String interactInsideMartialSchool() {
+        if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院");
+        var point=activeSchoolInterior.map().nearestInteractable(interiorX,interiorY)
+            .orElseThrow(() -> new IllegalStateException("附近没有可交互的设施"));
+        return useNearbyMartialSchoolFacility(point.id());
     }
     /** 当前地图附近的实体门派驻地；只有抵达对应区域才能拜入该门。 */
     public Optional<com.jianghu.map.MartialSchoolSite> nearbyMartialSchoolSite() {
