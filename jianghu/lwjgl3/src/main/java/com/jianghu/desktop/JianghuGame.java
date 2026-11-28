@@ -213,42 +213,15 @@ public final class JianghuGame extends ApplicationAdapter {
         if (world.insideMartialSchool()) {
             var interior = world.activeMartialSchoolInterior().orElseThrow();
             var indoorMap = interior.map();
-            for (int y=0;y<indoorMap.height();y++) for(int x=0;x<indoorMap.width();x++) {
-                Color terrain = switch (indoorMap.tileAt(x,y)) {
-                    case WALL -> new Color(.22f,.25f,.24f,1);
-                    case BUILDING -> new Color(.43f,.29f,.22f,1);
-                    case PATH -> new Color(.68f,.58f,.43f,1);
-                    case GRASS -> new Color(.38f,.54f,.34f,1);
-                    case WATER -> new Color(.25f,.48f,.58f,1);
-                    case BRIDGE -> new Color(.55f,.39f,.25f,1);
-                };
-                shapes.setColor(terrain); shapes.rect(ox+x*tile,oy+y*tile,tile-1,tile-1);
-            }
+            for (int y=0;y<indoorMap.height();y++) for(int x=0;x<indoorMap.width();x++)
+                PixelTerrainRenderer.drawInteriorTile(shapes, indoorMap.tileAt(x,y), x, y, ox, oy, tile);
             shapes.setColor(new Color(.82f,.72f,.48f,1));
             for (var point : indoorMap.points()) shapes.circle(ox+point.x()*tile+tile/2,oy+point.y()*tile+tile/2,5);
             PixelCharacterRenderer.draw(shapes,ox+world.interiorX()*tile+tile/2,oy+world.interiorY()*tile+tile/2-8,1.05f,playerAnimation);
         } else if (overworldMode) {
             var region = overworld.region();
-            for (int y = 0; y < region.height(); y++) for (int x = 0; x < region.width(); x++) {
-                Color terrain = switch (region.terrainAt(x, y)) {
-                    case DEEP_WATER -> new Color(.12f,.30f,.48f,1);
-                    case SHALLOW_WATER -> new Color(.25f,.52f,.65f,1);
-                    case GRASS -> new Color(.39f,.57f,.34f,1);
-                    case FOREST -> new Color(.20f,.43f,.25f,1);
-                    case DENSE_FOREST -> new Color(.10f,.29f,.18f,1);
-                    case PATH -> new Color(.68f,.58f,.40f,1);
-                    case STONE_PATH -> new Color(.55f,.54f,.50f,1);
-                    case BRIDGE -> new Color(.75f,.48f,.25f,1);
-                    case HILL -> new Color(.48f,.47f,.32f,1);
-                    case MOUNTAIN, CLIFF -> new Color(.34f,.34f,.36f,1);
-                    case CAVE_FLOOR -> new Color(.27f,.23f,.20f,1);
-                    case TOWN_GROUND -> new Color(.66f,.57f,.42f,1);
-                    case BUILDING -> new Color(.46f,.28f,.22f,1);
-                    case TEMPLE_GROUND -> new Color(.70f,.61f,.48f,1);
-                    case TEMPLE_BUILDING -> new Color(.50f,.35f,.25f,1);
-                };
-                shapes.setColor(terrain); shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
-            }
+            for (int y = 0; y < region.height(); y++) for (int x = 0; x < region.width(); x++)
+                PixelTerrainRenderer.drawOverworldTile(shapes, region.terrainAt(x, y), x, y, ox, oy, tile);
             shapes.setColor(Color.GOLD);
             for (var gate : overworld.gates()) shapes.rect(ox+gate.x()*tile+3, oy+gate.y()*tile+3, tile-6, tile-6);
             shapes.setColor(new Color(.88f,.78f,.34f,1));
@@ -258,17 +231,8 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             PixelCharacterRenderer.draw(shapes, ox+overworld.x()*tile+tile/2, oy+overworld.y()*tile+tile/2-3, .65f, playerAnimation);
         } else {
-            for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++) {
-                Color terrain = switch (map.tileAt(x,y)) {
-                    case WATER -> new Color(.30f,.58f,.62f,1);
-                    case WALL -> new Color(.25f,.34f,.29f,1);
-                    case BRIDGE -> new Color(.66f,.49f,.30f,1);
-                    case PATH -> new Color(.68f,.58f,.40f,1);
-                    case BUILDING -> new Color(.48f,.32f,.25f,1);
-                    case GRASS -> new Color(.48f,.65f,.43f,1);
-                };
-                shapes.setColor(terrain); shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
-            }
+            for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++)
+                PixelTerrainRenderer.drawTownTile(shapes, map.tileAt(x,y), x, y, ox, oy, tile);
             shapes.setColor(new Color(.55f,.38f,.24f,1)); shapes.rect(ox+6*tile,oy+2*tile,4*tile,3*tile);
             shapes.rect(ox+3*tile,oy+8*tile,3*tile,3*tile);
             shapes.setColor(new Color(.78f,.30f,.20f,1));
