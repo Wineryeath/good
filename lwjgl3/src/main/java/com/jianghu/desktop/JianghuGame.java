@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.jianghu.character.Player;
+import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.time.WorldClock;
 import com.jianghu.world.GameWorld;
@@ -19,10 +20,12 @@ public final class JianghuGame extends ApplicationAdapter {
     private SpriteBatch batch;
     private BitmapFont font;
     private GameWorld world;
+    private GameMap map;
     private float moveCooldown;
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
+        map = GameMap.starterTown();
         world = new GameWorld(new Player("无名旅人"), new WorldClock(1, 360), List.of(
             new Npc("npc-tea-owner", "沈掌柜", "茶摊老板", List.of(
                 new Npc.Schedule(6,11,"tea-stall",0), new Npc.Schedule(11,14,"market",0),
@@ -43,9 +46,10 @@ public final class JianghuGame extends ApplicationAdapter {
             if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) dy = 1;
             if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) dy = -1;
             if (dx != 0 || dy != 0) {
-                int nx = Math.max(1, Math.min(23, world.player().x() + dx));
-                int ny = Math.max(1, Math.min(15, world.player().y() + dy));
-                world.player().moveTo(nx, ny); world.clock().advance(2); moveCooldown = .12f;
+                int nx = world.player().x() + dx;
+                int ny = world.player().y() + dy;
+                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); world.clock().advance(2); }
+                moveCooldown = .12f;
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
