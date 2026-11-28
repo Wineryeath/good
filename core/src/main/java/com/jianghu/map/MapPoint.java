@@ -6,6 +6,6 @@ public record MapPoint(String id, String name, Kind kind, int x, int y, int inte
         if (x < 0 || y < 0 || interactionRange < 0) throw new IllegalArgumentException("地图坐标或交互范围无效");
     }
     public boolean canInteractFrom(int playerX, int playerY) {
-        return Math.abs(playerX - x) + Math.abs(playerY - y) <= interactionRange + 1;
+        return Math.abs(playerX - x) + Math.abs(playerY - y) <= interactionRange;
     }
 }
