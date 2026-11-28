@@ -333,6 +333,7 @@ public final class GameWorld {
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
     public void restoreSnapshot(GameWorldSnapshot snapshot) {
         if (snapshot == null) throw new IllegalArgumentException("世界快照不能为空");
+        activeSchoolInterior = null; interiorX = 0; interiorY = 0;
         java.util.Set<String> expectedIds = npcs.stream().map(Npc::id).collect(java.util.stream.Collectors.toSet());
         if (!snapshot.npcLives().keySet().equals(expectedIds) || !snapshot.relationships().keySet().equals(expectedIds))
             throw new IllegalArgumentException("存档 NPC 名册与当前场景不一致");
