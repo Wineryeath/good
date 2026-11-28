@@ -21,7 +21,7 @@ public final class OverworldRegionCatalog {
         switch (id) {
             case JIANGNAN -> {
                 for (int y = 4; y < 43; y++) for (int x = 27 + (int)(5 * Math.sin(y / 5.0)); x < 34 + (int)(5 * Math.sin(y / 5.0)); x++) map[y][x] = TerrainKind.SHALLOW_WATER;
-                for (int x = 29; x < 34; x++) map[23][x] = TerrainKind.BRIDGE;
+                for (int x = 27; x < 34; x++) map[23][x] = TerrainKind.BRIDGE;
                 patch(map, 7, 7, 10, 8, TerrainKind.TOWN_GROUND); patch(map, 45, 31, 7, 6, TerrainKind.FOREST);
                 patch(map, 9, 34, 6, 6, TerrainKind.DENSE_FOREST);
             }
