@@ -14,7 +14,7 @@ public final class NpcSocialGraph {
     private final Map<String, Bond> bonds = new LinkedHashMap<>();
 
     public NpcSocialGraph(Set<String> knownNpcIds) {
-        if (knownNpcIds == null || knownNpcIds.isEmpty())
+        if (knownNpcIds == null)
             throw new IllegalArgumentException("NPC 名册不能为空");
         this.knownNpcIds = Set.copyOf(knownNpcIds);
     }
@@ -49,6 +49,6 @@ public final class NpcSocialGraph {
             throw new IllegalArgumentException("关系中包含未知 NPC");
         if (from.equals(to)) throw new IllegalArgumentException("NPC 不能与自己建立关系");
     }
-    private static String key(String from, String to) { return from + "\u0000" + to; }
+    private static String key(String from, String to) { return from.length() + ":" + from + to; }
     private static int clamp(int value) { return Math.max(-100, Math.min(100, value)); }
 }
