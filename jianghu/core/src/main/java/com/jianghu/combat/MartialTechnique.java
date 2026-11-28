@@ -8,6 +8,7 @@ public enum MartialTechnique {
     BASIC_PALM("basic_palm", "基础掌法", MartialArtStyle.FIST, 2, 8, 0, "以掌劲直取中门，入门即可施展。"),
     IRON_PALM("iron_palm", "铁砂掌", MartialArtStyle.FIST, 8, 12, 18, "沉肩运劲，掌力刚猛。"),
     CLOUD_SWORD("cloud_sword", "流云剑式", MartialArtStyle.SWORD, 10, 12, 20, "剑随身转，连绵不绝。"),
+    CLOUD_PIERCING("cloud_piercing", "穿云破月", MartialArtStyle.SWORD, 16, 18, 30, "凝全身劲力于剑尖，一线破空。"),
     WIND_SABER("wind_saber", "断风刀", MartialArtStyle.SABER, 13, 16, 24, "刀势如风，重斩破敌。"),
     PIERCING_SPEAR("piercing_spear", "穿云枪", MartialArtStyle.SPEAR, 11, 14, 22, "凝劲于一点，直线突刺。"),
     SWEEPING_STAFF("sweeping_staff", "横江棍", MartialArtStyle.STAFF, 7, 10, 16, "横扫卸力，攻守兼备。");
