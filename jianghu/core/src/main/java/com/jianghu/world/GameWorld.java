@@ -16,6 +16,7 @@ import com.jianghu.business.TradeGood;
 import com.jianghu.business.MarketPriceBook;
 import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarket;
+import com.jianghu.business.TradeCaravan;
 import java.util.EnumMap;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
@@ -41,6 +42,7 @@ public final class GameWorld {
     private final Map<String, NpcBusiness> businesses = new LinkedHashMap<>();
     private final MarketPriceBook marketPriceBook = new MarketPriceBook();
     private final Map<MarketRegion, RegionalMarket> regionalMarkets = new EnumMap<>(MarketRegion.class);
+    private final Map<String, TradeCaravan> caravans = new LinkedHashMap<>();
     private long lastBusinessDay;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
@@ -113,6 +115,10 @@ public final class GameWorld {
         for (int i = 0; i < minutes; i++) {
             long previousDay = clock.day();
             clock.advance(1);
+            for (TradeCaravan caravan : caravans.values()) {
+                caravan.advanceMinute(weather);
+                if (caravan.state() == TradeCaravan.State.ARRIVED) settleArrivedCaravan(caravan);
+            }
             if (clock.day() != previousDay) { settleNpcAging(); settleNpcRomance(); settleNpcBusinesses(); }
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
@@ -479,6 +485,74 @@ public final class GameWorld {
         requireMarket(region).sell(quantity, good);
         life(ownerNpcId).remember("在" + region.displayName() + "的" + business.name() + "售出" + good.displayName() + " " + quantity + " 件，毛利 " + receipt.grossProfitInWen() + " 文");
         return receipt;
+    }
+    /** 创建行商队伍，发起人自动成为商队领队。 */
+    public TradeCaravan createTradeCaravan(String ownerNpcId, String caravanId, MarketRegion origin, MarketRegion destination) {
+        Npc owner = requireNpc(ownerNpcId);
+        if (!life(ownerNpcId).alive()) throw new IllegalStateException("已故 NPC 不能组织商队");
+        if (caravanId == null || caravanId.isBlank() || caravans.containsKey(caravanId)) throw new IllegalArgumentException("商队编号无效或重复");
+        TradeCaravan caravan = new TradeCaravan(caravanId, ownerNpcId, origin, destination);
+        caravans.put(caravanId, caravan);
+        life(ownerNpcId).remember("组织商队" + caravanId + "，计划从" + origin.displayName() + "前往" + destination.displayName());
+        return caravan;
+    }
+    public void addTradeCaravanCrew(String ownerNpcId, String caravanId, String crewNpcId) {
+        TradeCaravan caravan = requireCaravan(caravanId);
+        if (!caravan.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有商队领队可以招募成员");
+        requireNpc(crewNpcId);
+        if (!life(crewNpcId).alive()) throw new IllegalStateException("已故 NPC 不能加入商队");
+        caravan.addCrew(crewNpcId);
+        life(crewNpcId).remember("加入商队" + caravanId + "，随队前往" + caravan.destination().displayName());
+    }
+    /** 在出发地采购货物并装车，货款由领队个人承担。 */
+    public long loadTradeCaravan(String ownerNpcId, String caravanId, TradeGood good, int quantity) {
+        TradeCaravan caravan = requireCaravan(caravanId);
+        if (!caravan.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有商队领队可以装货");
+        long unitPrice = marketPrice(good, caravan.origin());
+        long cost = Math.multiplyExact(unitPrice, quantity);
+        if (cost > life(ownerNpcId).moneyInWen()) throw new IllegalStateException("领队银钱不足，无法采购");
+        RegionalMarket market = requireMarket(caravan.origin());
+        market.buy(quantity, good);
+        try {
+            life(ownerNpcId).debitMoney(cost);
+            caravan.load(good, quantity, cost);
+        } catch (RuntimeException ex) {
+            life(ownerNpcId).creditMoney(cost);
+            market.sell(quantity, good);
+            throw ex;
+        }
+        life(ownerNpcId).remember("为商队" + caravanId + "采购" + good.displayName() + " " + quantity + " 件，花费 " + cost + " 文");
+        return cost;
+    }
+    /** 按区域距离估算路程；跨越越远，所需游戏时间越长。 */
+    public int departTradeCaravan(String ownerNpcId, String caravanId) {
+        TradeCaravan caravan = requireCaravan(caravanId);
+        if (!caravan.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有商队领队可以下令出发");
+        int distance = Math.abs(caravan.origin().ordinal() - caravan.destination().ordinal());
+        int travelMinutes = 360 + distance * 180;
+        caravan.depart(travelMinutes);
+        return travelMinutes;
+    }
+    public List<TradeCaravan> tradeCaravans() { return List.copyOf(caravans.values()); }
+    public Optional<TradeCaravan> tradeCaravan(String caravanId) { return Optional.ofNullable(caravans.get(caravanId)); }
+    private TradeCaravan requireCaravan(String caravanId) {
+        TradeCaravan caravan = caravans.get(caravanId);
+        if (caravan == null) throw new IllegalArgumentException("未知商队：" + caravanId);
+        return caravan;
+    }
+    private void settleArrivedCaravan(TradeCaravan caravan) {
+        Map<TradeGood, TradeCaravan.Cargo> cargo = caravan.complete();
+        long revenueTotal = 0;
+        for (TradeCaravan.Cargo item : cargo.values()) {
+            long revenue = Math.multiplyExact(marketPrice(item.good(), caravan.destination()), item.quantity());
+            requireMarket(caravan.destination()).sell(item.quantity(), item.good());
+            revenueTotal = Math.addExact(revenueTotal, revenue);
+        }
+        life(caravan.ownerNpcId()).creditMoney(revenueTotal);
+        long costTotal = cargo.values().stream().mapToLong(TradeCaravan.Cargo::totalCostInWen).sum();
+        long profit = revenueTotal - costTotal;
+        String report = "商队" + caravan.id() + "抵达" + caravan.destination().displayName() + "，销售收入 " + revenueTotal + " 文，净收益 " + profit + " 文";
+        for (String memberId : caravan.crew()) if (life(memberId).alive()) life(memberId).remember(report);
     }
     /** 用产业金库升级经营规模，最高五级。 */
     public long upgradeNpcBusiness(String ownerNpcId, String businessId) {
