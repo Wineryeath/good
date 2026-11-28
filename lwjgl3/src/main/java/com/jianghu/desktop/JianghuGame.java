@@ -55,8 +55,8 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
         if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            world.nearbyNpc(map).ifPresentOrElse(
-                npc -> interactionMessage = npc.name() + "（" + npc.role() + "）：" + npc.schedulePlace(),
+            world.talkToNearby(map).ifPresentOrElse(
+                line -> interactionMessage = line,
                 () -> interactionMessage = "附近没有可以交谈的人。");
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) Gdx.app.exit();
