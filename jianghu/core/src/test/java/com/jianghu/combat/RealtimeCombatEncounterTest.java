@@ -43,6 +43,15 @@ class RealtimeCombatEncounterTest {
         assertTrue(fight.log().stream().anyMatch(line -> line.contains("格挡")));
     }
 
+    @Test void martialSkillConsumesInnerEnergyAndRejectsInsufficientEnergy() {
+        Player player = new Player("内功侠客");
+        RealtimeCombatEncounter fight = new RealtimeCombatEncounter(player,
+            new CombatEnemy("skill-target", "试招木人", "不还手", 100, 0, 0, 0, 0, null, 0));
+        int energy = player.innerEnergy();
+        assertTrue(fight.perform(CombatAction.SKILL).accepted());
+        assertEquals(energy - 15, player.innerEnergy());
+        assertEquals(80, player.stamina());
+    }
     @Test void heavyAttackCanDefeatEnemyAndSettlesRewardOnce() {
         Player player = new Player("重剑客");
         RealtimeCombatEncounter fight = new RealtimeCombatEncounter(player,
