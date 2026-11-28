@@ -45,7 +45,7 @@ public final class RealtimeCombatController {
         } else if (phase == Phase.BLOCKING && cooldown == 0) {
             phase = Phase.READY;
         } else if (phase != Phase.READY && cooldown == 0) {
-            phase = Phase.RECOVERING;
+            phase = actionTime >= 0.12f ? Phase.READY : Phase.RECOVERING;
         }
     }
     public boolean blocksIncomingDamage() { return phase == Phase.BLOCKING; }
