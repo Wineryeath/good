@@ -29,6 +29,7 @@ public final class GameWorld {
     private final Map<String, Long> lastSocialDay = new LinkedHashMap<>();
     private long lastAgedDay;
     private final java.util.Set<String> deathRecorded = new java.util.LinkedHashSet<>();
+    private final Map<String, String> independentHouseholds = new LinkedHashMap<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -93,7 +94,7 @@ public final class GameWorld {
             if (clock.day() != previousDay) settleNpcAging();
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
-                    if (life(npc.id()).alive()) life(npc.id()).passHour(npc.role(), npc.locationAt(clock.hour()), clock.hour());
+                    if (life(npc.id()).alive()) life(npc.id()).passHour(npc.role(), locationFor(npc, clock.hour()), clock.hour());
                 }
                 settleNpcSocialLife();
             }
@@ -125,6 +126,32 @@ public final class GameWorld {
         }
     }
 
+
+    /** 成年 NPC 可建立独立居所；仅在原日程回家时改为返回新居。 */
+    public void establishIndependentHousehold(String npcId, String householdPlace) {
+        Npc npc = requireNpc(npcId);
+        if (householdPlace == null || householdPlace.isBlank())
+            throw new IllegalArgumentException("独立居所不能为空");
+        NpcLifeState state = life(npcId);
+        if (!state.alive()) throw new IllegalStateException("已故 NPC 无法建立居所");
+        if (state.ageYears() < 18) throw new IllegalStateException("未成年 NPC 不能独立建立居所");
+        if (independentHouseholds.containsKey(npcId)) throw new IllegalStateException("NPC 已有独立居所");
+        independentHouseholds.put(npcId, householdPlace);
+        state.remember("成年后建立独立居所：" + householdPlace);
+        state.changeMood(5);
+    }
+
+    public Optional<String> independentHouseholdOf(String npcId) {
+        requireNpc(npcId);
+        return Optional.ofNullable(independentHouseholds.get(npcId));
+    }
+
+    private String locationFor(Npc npc, int hour) {
+        String scheduled = npc.locationAt(hour);
+        if ("home".equals(scheduled)) return independentHouseholds.getOrDefault(npc.id(), scheduled);
+        return scheduled;
+    }
+
     public NpcLifeState life(String npcId) {
         if (npcs.stream().noneMatch(n -> n.id().equals(npcId))) throw new IllegalArgumentException("未知 NPC：" + npcId);
         return npcLives.computeIfAbsent(npcId, ignored -> new NpcLifeState());
@@ -132,7 +159,7 @@ public final class GameWorld {
     /** 根据当前时辰把 NPC 的日程地点解析为地图坐标。未配置地点的 NPC 暂不显示。 */
     public List<NpcPosition> npcPositions(GameMap map) {
         return npcs.stream().filter(npc -> life(npc.id()).alive()).map(npc -> {
-            String place = npc.locationAt(clock.hour());
+            String place = locationFor(npc, clock.hour());
             Optional<MapPoint> point = map.points().stream().filter(p -> p.id().equals(place)).findFirst();
             return point.map(p -> new NpcPosition(npc.id(), npc.name(), npc.role(), p.x(), p.y(), place)).orElse(null);
         }).filter(java.util.Objects::nonNull).toList();
@@ -284,8 +311,8 @@ public final class GameWorld {
             if (lastSocialDay.getOrDefault(pairKey, 0L) == clock.day()) continue;
             Npc from = requireNpc(bond.fromNpcId());
             Npc to = requireNpc(bond.toNpcId());
-            String place = from.locationAt(clock.hour());
-            if (!place.equals(to.locationAt(clock.hour()))) continue;
+            String place = locationFor(from, clock.hour());
+            if (!place.equals(locationFor(to, clock.hour()))) continue;
             boolean warm = switch (bond.type()) {
                 case FAMILY, FRIEND, MENTOR, DISCIPLE -> true;
                 case RIVAL, ENEMY -> false;
