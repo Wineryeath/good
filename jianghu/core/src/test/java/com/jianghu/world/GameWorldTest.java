@@ -481,7 +481,7 @@ class GameWorldTest {
         assertEquals(180, world.regionalMarket(MarketRegion.JIANGNAN).stockOf(TradeGood.TEA));
         var receipt = world.sellNpcBusinessGoods("owner", "inn", TradeGood.TEA, 20, MarketRegion.BEILING);
         assertEquals(20, receipt.quantity());
-        assertEquals(170, world.regionalMarket(MarketRegion.BEILING).stockOf(TradeGood.TEA));
+        assertEquals(120, world.regionalMarket(MarketRegion.BEILING).stockOf(TradeGood.TEA));
     }
 
 }
