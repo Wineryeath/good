@@ -120,5 +120,18 @@ public final class Player {
         if (have == count) inventory.remove(id); else inventory.put(id, have - count);
         return true;
     }
+    /** 将完整快照恢复到同名玩家；所有集合均复制，恢复后互不共享可变容器。 */
+    public void restoreSnapshot(PlayerSnapshot snapshot) {
+        if (snapshot == null || !name.equals(snapshot.name())) throw new IllegalArgumentException("玩家快照身份不匹配");
+        health = snapshot.health(); stamina = snapshot.stamina(); hunger = snapshot.hunger();
+        thirst = snapshot.thirst(); morale = snapshot.morale(); reputation = snapshot.reputation();
+        money = snapshot.moneyInWen(); x = snapshot.x(); y = snapshot.y();
+        inventory.clear(); inventory.putAll(snapshot.inventory());
+        equipment.clear(); equipment.putAll(snapshot.equipment());
+        martialExperience = snapshot.martialExperience(); martialLevel = snapshot.martialLevel();
+        innerEnergy = snapshot.innerEnergy(); martialStyle = snapshot.martialStyle();
+        learnedStyles.clear(); learnedStyles.addAll(snapshot.learnedStyles());
+        learnedTechniques.clear(); learnedTechniques.addAll(snapshot.learnedTechniques());
+    }
     private static int clamp(int n) { return Math.max(0, Math.min(100, n)); }
 }
