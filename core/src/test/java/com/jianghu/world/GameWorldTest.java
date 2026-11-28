@@ -41,4 +41,24 @@ class GameWorldTest {
         assertEquals(2,world.relationship("tea-owner").favor());
     }
 
+    @Test void npcNeedsAndLivelihoodAdvanceAtEachWorldHour() {
+        Npc fisherman = new Npc("fisher","陆老七","渔夫",List.of(
+            new Npc.Schedule(5,19,"river-hut",0)),5);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,7*60+30),List.of(fisherman));
+        int hungerBefore = world.life("fisher").hunger();
+        long moneyBefore = world.life("fisher").moneyInWen();
+        world.advanceMinutes(30);
+        assertEquals(hungerBefore + 4,world.life("fisher").hunger());
+        assertEquals(moneyBefore + 12,world.life("fisher").moneyInWen());
+    }
+    @Test void talkingIsRememberedByNpc() {
+        Npc teaOwner = new Npc("tea-owner","沈掌柜","茶摊老板",List.of(
+            new Npc.Schedule(6,20,"tea-stall",0)),0);
+        Player player = new Player("旅人");
+        player.moveTo(10,5);
+        GameWorld world = new GameWorld(player,new WorldClock(1,8*60),List.of(teaOwner));
+        world.talkToNearby(GameMap.starterTown());
+        assertTrue(world.life("tea-owner").remembers("与玩家交谈（第 1 次）"));
+    }
+
 }
