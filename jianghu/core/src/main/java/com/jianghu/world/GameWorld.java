@@ -404,19 +404,51 @@ public final class GameWorld {
         return amount;
     }
 
-    /** 创办家族产业；主人必须是成年且在世的 NPC。 */
+    /** 创办家族产业；简化入口不设置额外成本与工资。 */
     public NpcBusiness foundNpcBusiness(String ownerNpcId, String businessId, String name,
                                         BusinessType type, long dailyIncomeInWen, long initialTreasuryInWen) {
+        return foundNpcBusiness(ownerNpcId, businessId, name, type, dailyIncomeInWen, 0, 0, initialTreasuryInWen);
+    }
+    /** 创办产业并设置每日运营成本与每名雇员工资。 */
+    public NpcBusiness foundNpcBusiness(String ownerNpcId, String businessId, String name, BusinessType type,
+                                        long dailyIncomeInWen, long dailyOperatingCostInWen,
+                                        long dailyWagePerEmployeeInWen, long initialTreasuryInWen) {
         requireNpc(ownerNpcId);
         NpcLifeState owner = life(ownerNpcId);
         if (!owner.alive() || owner.ageYears() < 18) throw new IllegalStateException("产业主人必须成年且在世");
         if (businesses.containsKey(businessId)) throw new IllegalArgumentException("产业编号已存在");
-        NpcBusiness business = new NpcBusiness(businessId, name, type, ownerNpcId, dailyIncomeInWen, initialTreasuryInWen);
+        NpcBusiness business = new NpcBusiness(businessId, name, type, ownerNpcId, dailyIncomeInWen,
+            dailyOperatingCostInWen, dailyWagePerEmployeeInWen, initialTreasuryInWen);
         businesses.put(businessId, business);
         owner.remember("创办" + name + "，成为" + type.displayName() + "主人");
         return business;
     }
 
+    /** 用产业金库升级经营规模，最高五级。 */
+    public long upgradeNpcBusiness(String ownerNpcId, String businessId) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以升级");
+        long cost = business.upgrade();
+        life(ownerNpcId).remember("投入" + cost + "文，将" + business.name() + "升级至" + business.level() + "级");
+        return cost;
+    }
+
+    /** 产业主人决定分红比例；分红直接进入员工个人账目。 */
+    public long distributeNpcBusinessProfit(String ownerNpcId, String businessId, int percentage) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以分红");
+        Map<String, Long> shares = business.distributeProfit(percentage);
+        long total = 0;
+        for (Map.Entry<String, Long> share : shares.entrySet()) {
+            if (life(share.getKey()).alive()) {
+                life(share.getKey()).creditMoney(share.getValue());
+                life(share.getKey()).remember("获得" + business.name() + "利润分红 " + share.getValue() + " 文");
+                total = Math.addExact(total, share.getValue());
+            }
+        }
+        life(ownerNpcId).remember("向" + business.name() + "员工分配利润 " + total + " 文");
+        return total;
+    }
     /** 只雇佣在世的家庭成员或已建立师徒关系的 NPC。 */
     public void hireForNpcBusiness(String ownerNpcId, String businessId, String employeeNpcId) {
         NpcBusiness business = requireBusiness(businessId);
@@ -468,7 +500,16 @@ public final class GameWorld {
     private void settleNpcBusinesses() {
         while (lastBusinessDay < clock.day()) {
             lastBusinessDay++;
-            businesses.values().forEach(NpcBusiness::settleDay);
+            boolean adverse = weather.contains("暴雨") || weather.contains("暴雪") || weather.contains("台风");
+            for (NpcBusiness business : businesses.values()) {
+                NpcBusiness.DailyReport report = business.settleDay(adverse);
+                for (String employeeId : business.employees()) {
+                    if (life(employeeId).alive()) life(employeeId).creditMoney(business.dailyWagePerEmployeeInWen());
+                }
+                if (report.netProfitInWen() < 0) {
+                    life(business.ownerNpcId()).remember(business.name() + "今日经营亏损 " + (-report.netProfitInWen()) + " 文");
+                }
+            }
         }
     }
     /** 家庭成员发生冲突：谱系保留，社会关系暂时转为仇敌。 */
