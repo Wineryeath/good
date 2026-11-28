@@ -18,6 +18,20 @@ class GameWorldSaveServiceTest {
         world.offerQuest(new com.jianghu.quest.Quest("herb-delivery", java.util.Map.of("herb", 3)), 180);
         return world;
     }
+    @Test void defeatedPlayerCanRecoverAtTheTownClinic() {
+        GameWorld defeated = world(1, 360);
+        defeated.player().changeHealth(-100);
+        long moneyBefore = defeated.player().moneyInWen();
+        String message = defeated.recoverFromDefeat();
+        assertEquals(35, defeated.player().health());
+        assertEquals(30, defeated.player().stamina());
+        assertEquals(moneyBefore - 200, defeated.player().moneyInWen());
+        assertEquals(9, defeated.player().x());
+        assertEquals(9, defeated.player().y());
+        assertTrue(message.contains("医馆"));
+        assertThrows(IllegalStateException.class, defeated::recoverFromDefeat);
+    }
+
     @Test void worldSaveRestoresPlayerNpcLifeRelationshipsAndCalendar() throws Exception {
         GameWorld original = world(2, 350);
         original.player().changeHealth(-18); original.player().addItem("herb", 5); original.player().moveTo(12, 7);
