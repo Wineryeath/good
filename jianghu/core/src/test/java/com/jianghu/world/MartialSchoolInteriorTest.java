@@ -31,10 +31,9 @@ class MartialSchoolInteriorTest {
         world.joinNearbyMartialSchool();
         assertTrue(world.enterNearbyMartialSchool().contains("进入少林金刚院"));
         assertTrue(world.insideMartialSchool());
+        assertThrows(IllegalStateException.class, () -> world.useInsideMartialSchoolFacility(MartialSchoolFacility.Type.TRAINING_GROUND));
         for(int i=0;i<4;i++) assertTrue(world.moveInsideMartialSchool(-1,0));
         for(int i=0;i<5;i++) assertTrue(world.moveInsideMartialSchool(0,1));
-        assertThrows(IllegalStateException.class, () -> world.useInsideMartialSchoolFacility(MartialSchoolFacility.Type.TRAINING_GROUND));
-        assertTrue(world.moveInsideMartialSchool(0,-1));
         assertTrue(world.useInsideMartialSchoolFacility(MartialSchoolFacility.Type.TRAINING_GROUND).contains("修习"));
         assertFalse(world.insideMartialSchool());
     }
