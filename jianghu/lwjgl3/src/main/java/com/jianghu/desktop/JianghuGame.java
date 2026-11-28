@@ -55,6 +55,9 @@ public final class JianghuGame extends ApplicationAdapter {
         visualTime += delta;
         playerAnimation.update(delta);
         world.updateRealtimeCombat(delta);
+        boolean combatInProgress = world.activeRealtimeCombat()
+            .filter(fight -> fight.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()
+            || world.activeCombat().filter(fight -> fight.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING).isPresent();
         world.activeRealtimeCombat().filter(fight -> fight.status() != com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
             .ifPresent(fight -> {
                 interactionMessage = switch (fight.status()) {
@@ -70,7 +73,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (world.player().health() < previousPlayerHealth) playerAnimation.hurt();
         previousPlayerHealth = world.player().health();
         moveCooldown -= delta;
-        if (moveCooldown <= 0) {
+        if (moveCooldown <= 0 && !combatInProgress) {
             int dx = 0, dy = 0;
             if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) dx = -1;
             if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) dx = 1;
@@ -97,10 +100,10 @@ public final class JianghuGame extends ApplicationAdapter {
             else world.waitMinutes(30);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SHIFT_LEFT)) performRealtimeAction(CombatAction.HEAVY_ATTACK);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.I)) inventoryOpen = !inventoryOpen;
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F5)) saveGame();
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F9)) loadGame();
-        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.I)) inventoryOpen = !inventoryOpen;
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.F5)) saveGame();
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.F9)) loadGame();
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.O)) {
             if (world.insideMartialSchool()) {
                 try { interactionMessage = world.leaveMartialSchool(); }
                 catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
@@ -111,14 +114,14 @@ public final class JianghuGame extends ApplicationAdapter {
             try { interactionMessage = world.enterNearbyMartialSchool(); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) useItem("meal");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) useItem("medicine");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) useItem("herb");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) equipItem("iron_sword");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) equipItem("leather_armor");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) useItem("meal");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) useItem("medicine");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) useItem("herb");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) equipItem("iron_sword");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) equipItem("leather_armor");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
             try {
                 if (world.insideMartialSchool()) interactionMessage = world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.MEDITATION_HALL);
                 else if (overworldMode) {
@@ -149,18 +152,18 @@ public final class JianghuGame extends ApplicationAdapter {
             try { interactionMessage = world.donateToNearbyMartialSchool(100); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             try { interactionMessage = overworldMode ? world.joinNearbyMartialSchool() : world.learnFromMartialMaster(map); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             try { interactionMessage = world.learnTechniqueFromMartialMaster(map); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) useTechniqueOrRealtimeSkill("basic_palm");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueOrRealtimeSkillForCurrentStyle();
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechniqueOrRealtimeSkill("cloud_piercing");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             try {
                 interactionMessage = (overworldMode || world.insideMartialSchool()) ? (world.insideMartialSchool() ? world.useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type.TRAINING_GROUND) : world.trainAtNearbyMartialSchool()) : world.trainWithMartialMaster(map);
                 playerAnimation.train();
@@ -175,10 +178,10 @@ public final class JianghuGame extends ApplicationAdapter {
                 try { interactionMessage = world.fleeRealtimeCombat(); } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
             } else combatAction(true);
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) craft("medicine");
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) craft("meal");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.T)) craft("medicine");
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.Y)) craft("meal");
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.B)) {
             try { interactionMessage = "购入草药 " + world.buyFromMarket(map, com.jianghu.business.TradeGood.HERB, 1) + " 文。"; }
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
@@ -191,15 +194,15 @@ public final class JianghuGame extends ApplicationAdapter {
                 world.player().inventory().getOrDefault("herb", 0)) + " 文。"; }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.K)) {
             try { interactionMessage = "做工完成，获得 " + world.workForNearbyNpc(map) + " 文。"; }
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.G)) {
             try { world.giftToNearbyNpc(map, "herb"); interactionMessage = "你送出一份草药，对方记下了这份心意。"; }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.J)) {
             var quest = world.quest("herb-delivery").orElseThrow();
             try {
                 if (quest.status() == com.jianghu.quest.Quest.Status.LOCKED) { world.acceptQuest("herb-delivery"); interactionMessage = "接取委托：采集三份草药交给镇中药铺。"; }
@@ -207,7 +210,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 else interactionMessage = "采药委托进度：" + quest.progress().get("herb") + "/3";
             } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             if (world.insideMartialSchool()) {
                 try { interactionMessage = world.interactInsideMartialSchool(); }
                 catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
@@ -215,7 +218,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 line -> interactionMessage = line,
                 () -> interactionMessage = "附近没有可以交互的地点。");
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+        if (!combatInProgress && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             if (overworldMode) {
                 try { interactionMessage = world.inspectNearbyMartialSchool(); }
                 catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
