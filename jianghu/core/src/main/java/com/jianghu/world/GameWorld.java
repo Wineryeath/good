@@ -107,7 +107,7 @@ public final class GameWorld {
             for (Npc npc : npcs) {
                 NpcLifeState state = life(npc.id());
                 if (!state.alive()) continue;
-                if (state.passDay()) {
+                if (state.passDay() && state.alive()) {
                     String milestone = npc.name() + " 年满 " + state.ageYears() + " 岁";
                     state.remember(milestone);
                     if (state.ageYears() == 12 || state.ageYears() == 18 || state.ageYears() == 60) {
@@ -117,6 +117,9 @@ public final class GameWorld {
                             default -> npc.name() + "步入晚年";
                         });
                     }
+                }
+                if (!state.alive() && !deathRecorded.contains(npc.id())) {
+                    recordNpcDeath(npc.id(), "疾病恶化，未能救治");
                 }
             }
         }
@@ -172,6 +175,23 @@ public final class GameWorld {
     }
 
 
+
+
+    /** NPC 患病；疾病会在每日结算时持续损害健康。 */
+    public void giveNpcIllness(String npcId, String illness, int severity) {
+        Npc npc = requireNpc(npcId);
+        life(npcId).contractIllness(illness, severity);
+        life(npcId).remember("染上疾病：" + illness + "（病情 " + severity + "）");
+    }
+
+    /** 为患病 NPC 治疗；治愈后停止每日疾病伤害。 */
+    public void treatNpc(String npcId, String treatment, int severityReduction, int healthRestored) {
+        Npc npc = requireNpc(npcId);
+        requireDescription(treatment);
+        life(npcId).treatIllness(severityReduction, healthRestored);
+        life(npcId).remember("接受治疗：" + treatment);
+        life(npcId).changeMood(3);
+    }
 
     /** 记录 NPC 去世；死亡不会自动抹去其家庭谱系或社会关系历史。 */
     public void recordNpcDeath(String npcId, String cause) {
