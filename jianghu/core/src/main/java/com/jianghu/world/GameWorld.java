@@ -27,10 +27,12 @@ public final class GameWorld {
     private final NpcSocialGraph socialGraph;
     private final NpcFamilyRegistry familyRegistry;
     private final Map<String, Long> lastSocialDay = new LinkedHashMap<>();
+    private long lastAgedDay;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
         this.familyRegistry = new NpcFamilyRegistry(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
+        this.lastAgedDay = clock.day();
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
@@ -56,6 +58,7 @@ public final class GameWorld {
     public void addNpcChild(String parentNpcId, String childNpcId) {
         Npc parent = requireNpc(parentNpcId);
         Npc child = requireNpc(childNpcId);
+        life(childNpcId).initializeAge(0);
         List<String> parentIds = new java.util.ArrayList<>();
         parentIds.add(parentNpcId);
         familyRegistry.spouseOf(parentNpcId).ifPresent(parentIds::add);
@@ -83,7 +86,9 @@ public final class GameWorld {
     public void advanceMinutes(int minutes) {
         if (minutes < 0) throw new IllegalArgumentException("不能倒退时间");
         for (int i = 0; i < minutes; i++) {
+            long previousDay = clock.day();
             clock.advance(1);
+            if (clock.day() != previousDay) settleNpcAging();
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
                     life(npc.id()).passHour(npc.role(), npc.locationAt(clock.hour()), clock.hour());
@@ -92,6 +97,28 @@ public final class GameWorld {
             }
         }
     }
+
+    /** 每跨过一个游戏日，NPC 增长一天；每 360 天增长一岁并记录成长节点。 */
+    private void settleNpcAging() {
+        while (lastAgedDay < clock.day()) {
+            lastAgedDay++;
+            for (Npc npc : npcs) {
+                NpcLifeState state = life(npc.id());
+                if (state.passDay()) {
+                    String milestone = npc.name() + " 年满 " + state.ageYears() + " 岁";
+                    state.remember(milestone);
+                    if (state.ageYears() == 12 || state.ageYears() == 18 || state.ageYears() == 60) {
+                        state.remember(switch (state.ageYears()) {
+                            case 12 -> npc.name() + "进入少年时期";
+                            case 18 -> npc.name() + "成年了";
+                            default -> npc.name() + "步入晚年";
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     public NpcLifeState life(String npcId) {
         if (npcs.stream().noneMatch(n -> n.id().equals(npcId))) throw new IllegalArgumentException("未知 NPC：" + npcId);
         return npcLives.computeIfAbsent(npcId, ignored -> new NpcLifeState());
