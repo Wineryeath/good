@@ -165,7 +165,32 @@ public final class GameWorld {
     }
 
 
-    /** 成年 NPC 可按学识选择职业；每人只能选择一次。 */
+    /** 已正式择业的成年师傅可指导登记为徒弟的 NPC，积累对应职业技艺。 */
+    public int trainNpcApprentice(String mentorNpcId, String apprenticeNpcId, int effort) {
+        Npc mentor = requireNpc(mentorNpcId);
+        requireNpc(apprenticeNpcId);
+        NpcLifeState mentorLife = life(mentorNpcId);
+        NpcLifeState apprenticeLife = life(apprenticeNpcId);
+        if (!mentorLife.alive() || mentorLife.ageYears() < 18 || mentorLife.profession().isEmpty())
+            throw new IllegalStateException("师傅必须是有职业的成年在世 NPC");
+        if (!apprenticeLife.alive() || apprenticeLife.ageYears() < 12)
+            throw new IllegalStateException("徒弟必须年满 12 岁且在世");
+        if (apprenticeLife.profession().isPresent())
+            throw new IllegalStateException("已有职业者不能作为初学徒弟");
+        if (effort < 1 || effort > 10) throw new IllegalArgumentException("训练投入必须在 1..10 之间");
+        var bond = socialGraph.relation(mentorNpcId, apprenticeNpcId);
+        if (bond.isEmpty() || bond.get().type() != NpcSocialGraph.RelationType.MENTOR)
+            throw new IllegalArgumentException("必须先建立师徒关系");
+        String craft = mentorLife.profession().orElseThrow();
+        int gained = effort + 3;
+        apprenticeLife.trainProfession(craft, gained);
+        apprenticeLife.remember("跟随" + mentor.name() + "学习" + craft + "技艺，成长 " + gained);
+        mentorLife.remember("传授" + life(apprenticeNpcId).profession().orElse("徒弟") + craft + "技艺");
+        mentorLife.changeMood(1);
+        return gained;
+    }
+
+    /** 成年 NPC 可按学识或师承技艺选择职业；每人只能选择一次。 */
     public void chooseNpcProfession(String npcId, String profession) {
         Npc npc = requireNpc(npcId);
         requireDescription(profession);
@@ -178,8 +203,9 @@ public final class GameWorld {
             case "教书先生" -> 50;
             default -> throw new IllegalArgumentException("暂不支持该职业");
         };
-        if (state.education() < requiredEducation)
-            throw new IllegalStateException("学识不足，无法胜任该职业");
+        int training = state.vocationalTraining(profession);
+        if (state.education() + training < requiredEducation)
+            throw new IllegalStateException("学识或师承技艺不足，无法胜任该职业");
         state.chooseProfession(profession);
         state.remember("成年后选择职业：" + profession);
     }
