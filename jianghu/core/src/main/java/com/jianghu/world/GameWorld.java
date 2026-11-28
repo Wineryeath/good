@@ -14,6 +14,9 @@ import com.jianghu.business.BusinessType;
 import com.jianghu.business.NpcBusiness;
 import com.jianghu.business.TradeGood;
 import com.jianghu.business.MarketPriceBook;
+import com.jianghu.business.MarketRegion;
+import com.jianghu.business.RegionalMarket;
+import java.util.EnumMap;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,6 +40,7 @@ public final class GameWorld {
     private final Map<String, Integer> courtshipDays = new LinkedHashMap<>();
     private final Map<String, NpcBusiness> businesses = new LinkedHashMap<>();
     private final MarketPriceBook marketPriceBook = new MarketPriceBook();
+    private final Map<MarketRegion, RegionalMarket> regionalMarkets = new EnumMap<>(MarketRegion.class);
     private long lastBusinessDay;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
@@ -44,6 +48,7 @@ public final class GameWorld {
         this.familyRegistry = new NpcFamilyRegistry(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
         this.lastAgedDay = clock.day();
         this.lastBusinessDay = clock.day();
+        for (MarketRegion region : MarketRegion.values()) regionalMarkets.put(region, new RegionalMarket(region));
     }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
@@ -427,27 +432,52 @@ public final class GameWorld {
         return business;
     }
 
-    /** 查询当日市价；价格由游戏日期与天气确定，不依赖现实时间。 */
-    public long marketPrice(TradeGood good) { return marketPriceBook.priceOf(good, clock.day(), weather); }
-    public Map<TradeGood, Long> marketPrices() { return marketPriceBook.pricesFor(clock.day(), weather); }
+    /** 查询江南默认市价；兼容起始区域的交易入口。 */
+    public long marketPrice(TradeGood good) { return marketPrice(good, MarketRegion.JIANGNAN); }
+    /** 区域报价同时考虑日期、天气、当地库存与需求。 */
+    public long marketPrice(TradeGood good, MarketRegion region) { return requireMarket(region).quote(good, clock.day(), weather); }
+    public Map<TradeGood, Long> marketPrices() { return marketPrices(MarketRegion.JIANGNAN); }
+    public Map<TradeGood, Long> marketPrices(MarketRegion region) {
+        Map<TradeGood, Long> prices = new LinkedHashMap<>();
+        for (TradeGood good : TradeGood.values()) prices.put(good, marketPrice(good, region));
+        return Map.copyOf(prices);
+    }
+    public RegionalMarket regionalMarket(MarketRegion region) { return requireMarket(region); }
+    private RegionalMarket requireMarket(MarketRegion region) {
+        RegionalMarket market = regionalMarkets.get(region);
+        if (market == null) throw new IllegalArgumentException("未知市场区域");
+        return market;
+    }
 
     /** 按当日市价采购专营商品，库存与成本随产业保存。 */
     public long restockNpcBusiness(String ownerNpcId, String businessId, TradeGood good, int quantity) {
+        return restockNpcBusiness(ownerNpcId, businessId, good, quantity, MarketRegion.JIANGNAN);
+    }
+    public long restockNpcBusiness(String ownerNpcId, String businessId, TradeGood good, int quantity, MarketRegion region) {
         NpcBusiness business = requireBusiness(businessId);
         if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以采购");
-        long unitPrice = marketPrice(good);
-        long cost = business.restock(good, quantity, unitPrice);
-        life(ownerNpcId).remember("为" + business.name() + "进货" + good.displayName() + " " + quantity + " 件，花费 " + cost + " 文");
+        RegionalMarket market = requireMarket(region);
+        long unitPrice = marketPrice(good, region);
+        long cost = Math.multiplyExact(unitPrice, quantity);
+        if (cost > business.treasuryInWen()) throw new IllegalStateException("产业金库不足，无法进货");
+        market.buy(quantity, good);
+        try { business.restock(good, quantity, unitPrice); }
+        catch (RuntimeException ex) { market.sell(quantity, good); throw ex; }
+        life(ownerNpcId).remember("在" + region.displayName() + "为" + business.name() + "采购" + good.displayName() + " " + quantity + " 件");
         return cost;
     }
 
     /** 按市场价加产业等级溢价销售库存；销售所得进入金库。 */
     public NpcBusiness.SaleReceipt sellNpcBusinessGoods(String ownerNpcId, String businessId, TradeGood good, int quantity) {
+        return sellNpcBusinessGoods(ownerNpcId, businessId, good, quantity, MarketRegion.JIANGNAN);
+    }
+    public NpcBusiness.SaleReceipt sellNpcBusinessGoods(String ownerNpcId, String businessId, TradeGood good, int quantity, MarketRegion region) {
         NpcBusiness business = requireBusiness(businessId);
         if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以安排销售");
-        long unitPrice = Math.multiplyExact(marketPrice(good), 100L + 3L * (business.level() - 1)) / 100L;
+        long unitPrice = Math.multiplyExact(marketPrice(good, region), 100L + 3L * (business.level() - 1)) / 100L;
         NpcBusiness.SaleReceipt receipt = business.sell(good, quantity, unitPrice);
-        life(ownerNpcId).remember("在" + business.name() + "售出" + good.displayName() + " " + quantity + " 件，毛利 " + receipt.grossProfitInWen() + " 文");
+        requireMarket(region).sell(quantity, good);
+        life(ownerNpcId).remember("在" + region.displayName() + "的" + business.name() + "售出" + good.displayName() + " " + quantity + " 件，毛利 " + receipt.grossProfitInWen() + " 文");
         return receipt;
     }
     /** 用产业金库升级经营规模，最高五级。 */
