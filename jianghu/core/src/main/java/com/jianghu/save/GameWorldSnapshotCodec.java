@@ -7,6 +7,8 @@ import com.jianghu.business.BusinessType;
 import com.jianghu.business.TradeGood;
 import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarketSnapshot;
+import com.jianghu.quest.Quest;
+import com.jianghu.quest.QuestSnapshot;
 import com.jianghu.social.NpcRelationshipSnapshot;
 import com.jianghu.world.GameWorldSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -67,6 +69,12 @@ public final class GameWorldSnapshotCodec {
             String p="world.market."+mi++ +"."; put(out,p+"region",entry.getKey().name());
             for (TradeGood good : TradeGood.values()) { put(out,p+good.name()+".stock",entry.getValue().stock().get(good)); put(out,p+good.name()+".demand",entry.getValue().demand().get(good)); }
         }
+        put(out,"world.quest.count",s.quests().size()); int qi=0;
+        for(var entry:s.quests().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()){
+            String p="world.quest."+qi++ +"."; QuestSnapshot q=entry.getValue(); out.put(p+"id",b64(q.id())); put(out,p+"status",q.status().name());
+            putIntMap(out,p+"objectives",q.objectives()); putIntMap(out,p+"progress",q.progress());
+        }
+        putLongMap(out,"world.questRewards",s.questRewards());
         putSet(out, "world.deathRecorded", s.deathRecorded()); putLongMap(out, "world.lastSocialDay", s.lastSocialDay());
         putStringMap(out, "world.households", s.independentHouseholds()); putIntMap(out, "world.courtshipDays", s.courtshipDays());
         putLongMap(out, "world.masterTrainingDays", s.masterTrainingDays()); putIntMap(out, "world.masterFavor", s.masterFavor());
@@ -110,8 +118,11 @@ public final class GameWorldSnapshotCodec {
             Map<TradeGood,Integer> stock=new LinkedHashMap<>(),demand=new LinkedHashMap<>();
             for(TradeGood good:TradeGood.values()){stock.put(good,num(data,p+good.name()+".stock"));demand.put(good,num(data,p+good.name()+".demand"));}
             markets.put(region,new RegionalMarketSnapshot(region,stock,demand));}
+        Map<String,QuestSnapshot> quests=new LinkedHashMap<>();
+        for(int i=0;i<count(data,"world.quest.count");i++){String p="world.quest."+i+".";String id=unb64(req(data,p+"id"));
+            quests.put(id,new QuestSnapshot(id,readIntMap(data,p+"objectives"),readIntMap(data,p+"progress"),Quest.Status.valueOf(req(data,p+"status"))));}
         return new GameWorldSnapshot(player, longNum(data,"world.day"), num(data,"world.minute"), unb64(req(data,"world.weather")),
-            lives, relations, businesses, markets, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
+            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"));
     }
