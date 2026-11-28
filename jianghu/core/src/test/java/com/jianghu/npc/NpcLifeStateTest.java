@@ -18,6 +18,16 @@ class NpcLifeStateTest {
         assertFalse(life.remembers("event-0"));
         assertTrue(life.remembers("event-20"));
     }
+    @Test void restoringOversizedMemoryHistoryKeepsOnlyTheLatestTwenty() {
+        NpcLifeState life = new NpcLifeState();
+        var memories = java.util.stream.IntStream.range(0, 25).mapToObj(i -> "restored-" + i).toList();
+        life.restoreSnapshot(new NpcLifeSnapshot(20, 0, false, 25, 85, 60, 0, null,
+            java.util.Map.of(), 500, 100, true, false, null, 0, memories));
+        assertEquals(20, life.memories().size());
+        assertFalse(life.remembers("restored-0"));
+        assertTrue(life.remembers("restored-24"));
+    }
+
     @Test void ageAdvancesByGameDaysAndChangesLifeStages() {
         NpcLifeState life = new NpcLifeState();
         life.initializeAge(11);
