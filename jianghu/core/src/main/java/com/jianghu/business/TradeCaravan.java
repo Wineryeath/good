@@ -48,6 +48,20 @@ public final class TradeCaravan {
     public int elapsedMinutes() { return elapsedMinutes; }
     public int delayMinutes() { return delayMinutes; }
     public String lastEvent() { return lastEvent; }
+    public TradeCaravanSnapshot snapshot() {
+        return new TradeCaravanSnapshot(id, ownerNpcId, origin, destination, crew, crewStrength, crewWounds, cargo,
+            state, remainingMinutes, elapsedMinutes, delayMinutes, weatherEventRecorded, ambushEventRecorded, lostCargoQuantity, lastEvent);
+    }
+    public void restoreSnapshot(TradeCaravanSnapshot snapshot) {
+        if (snapshot == null || !id.equals(snapshot.id()) || !ownerNpcId.equals(snapshot.ownerNpcId())
+                || origin != snapshot.origin() || destination != snapshot.destination())
+            throw new IllegalArgumentException("商队存档与当前队伍定义不匹配");
+        crew.clear(); crew.addAll(snapshot.crew()); crewStrength.clear(); crewStrength.putAll(snapshot.crewStrength());
+        crewWounds.clear(); crewWounds.putAll(snapshot.crewWounds()); cargo.clear(); cargo.putAll(snapshot.cargo());
+        state = snapshot.state(); remainingMinutes = snapshot.remainingMinutes(); elapsedMinutes = snapshot.elapsedMinutes();
+        delayMinutes = snapshot.delayMinutes(); weatherEventRecorded = snapshot.weatherEventRecorded();
+        ambushEventRecorded = snapshot.ambushEventRecorded(); lostCargoQuantity = snapshot.lostCargoQuantity(); lastEvent = snapshot.lastEvent();
+    }
     public void addCrew(String npcId) { addCrew(npcId, 5); }
     public void addCrew(String npcId, int combatStrength) {
         requireState(State.PREPARING);
