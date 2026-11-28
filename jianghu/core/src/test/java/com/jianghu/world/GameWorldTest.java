@@ -326,7 +326,6 @@ class GameWorldTest {
         world.addNpcChild("parent","child");
         assertThrows(IllegalArgumentException.class,
             () -> world.teachNpcChild("stranger","child","算学",5));
-        world.life("child").initializeAge(10);
     }
 
 
