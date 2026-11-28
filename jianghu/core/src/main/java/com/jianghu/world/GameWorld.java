@@ -861,6 +861,40 @@ public final class GameWorld {
         return "你在" + point.name() + "喝茶歇息一个时辰，花费 30 文，恢复了体力与健康。";
     }
 
+    /** 使用一件可消耗物品；先确认物品存在且有效，再扣除库存并应用效果。 */
+    public String useInventoryItem(String itemId) {
+        com.jianghu.item.InventoryItem item = com.jianghu.item.InventoryCatalog.find(itemId)
+            .orElseThrow(() -> new IllegalArgumentException("未知物品：" + itemId));
+        if (item.health() == 0 && item.stamina() == 0 && item.hunger() == 0
+                && item.thirst() == 0 && item.morale() == 0)
+            throw new IllegalStateException("这件物品暂时无法直接使用");
+        if (player.inventory().getOrDefault(itemId, 0) < 1)
+            throw new IllegalStateException("背包中没有" + item.name());
+        player.removeItem(itemId, 1);
+        player.changeHealth(item.health());
+        player.recoverStamina(item.stamina());
+        player.changeHunger(item.hunger());
+        player.changeThirst(item.thirst());
+        player.changeMorale(item.morale());
+        advanceMinutes(5);
+        return "使用" + item.name() + "：" + item.description();
+    }
+
+    /** 按图鉴分类汇总背包；未知物品统一归入材料，避免存档物品丢失。 */
+    public Map<com.jianghu.item.InventoryItem.Category, Map<String, Integer>> inventoryByCategory() {
+        Map<com.jianghu.item.InventoryItem.Category, Map<String, Integer>> grouped = new EnumMap<>(com.jianghu.item.InventoryItem.Category.class);
+        for (com.jianghu.item.InventoryItem.Category category : com.jianghu.item.InventoryItem.Category.values())
+            grouped.put(category, new LinkedHashMap<>());
+        player.inventory().forEach((id, count) -> {
+            var item = com.jianghu.item.InventoryCatalog.find(id);
+            var category = item.map(com.jianghu.item.InventoryItem::category)
+                .orElse(com.jianghu.item.InventoryItem.Category.MATERIAL);
+            grouped.get(category).put(id, count);
+        });
+        Map<com.jianghu.item.InventoryItem.Category, Map<String, Integer>> result = new EnumMap<>(com.jianghu.item.InventoryItem.Category.class);
+        grouped.forEach((category, items) -> result.put(category, Map.copyOf(items)));
+        return Map.copyOf(result);
+    }
     /** 在附近 NPC 处打短工；劳动消耗体力与时间，收入取决于雇主行当。 */
     public long workForNearbyNpc(GameMap map) {
         NpcPosition position = nearbyNpc(map).orElseThrow(() -> new IllegalStateException("附近没有可以雇用你的 NPC"));
