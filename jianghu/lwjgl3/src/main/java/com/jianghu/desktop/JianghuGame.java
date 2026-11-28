@@ -167,7 +167,10 @@ public final class JianghuGame extends ApplicationAdapter {
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
-            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) performRealtimeAction(CombatAction.BLOCK);
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) {
+                playerAnimation.block();
+                performRealtimeAction(CombatAction.BLOCK);
+            }
             else try { interactionMessage = "售出草药，收入 " + world.sellToMarket(map, com.jianghu.business.TradeGood.HERB,
                 world.player().inventory().getOrDefault("herb", 0)) + " 文。"; }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
