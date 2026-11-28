@@ -4,6 +4,7 @@ import com.jianghu.character.Player;
 import com.jianghu.business.BusinessType;
 import com.jianghu.business.TradeGood;
 import com.jianghu.business.MarketRegion;
+import com.jianghu.business.TradeCaravan;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.npc.NpcFamilyRegistry;
