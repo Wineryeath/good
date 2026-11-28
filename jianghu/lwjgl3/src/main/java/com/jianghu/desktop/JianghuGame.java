@@ -54,6 +54,11 @@ public final class JianghuGame extends ApplicationAdapter {
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            world.interactWithNearbyPoint(map).ifPresentOrElse(
+                line -> interactionMessage = line,
+                () -> interactionMessage = "附近没有可以交互的地点。");
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             world.talkToNearby(map).ifPresentOrElse(
                 line -> interactionMessage = line,
@@ -88,9 +93,15 @@ public final class JianghuGame extends ApplicationAdapter {
         batch.begin(); font.setColor(Color.WHITE);
         font.draw(batch,"一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
-        font.draw(batch,"旅人："+world.player().name()+"   银两："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文   体力："+world.player().stamina(),36,48);
-        font.draw(batch,"WASD / 方向键移动    E：与附近人物交谈    空格：等待半时辰    ESC：退出",36,25);
-        font.draw(batch, interactionMessage, 500, 48);
+        font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
+        font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+" 份",36,36);
+        font.draw(batch,"WASD / 方向键移动   E：交谈   F：地点交互   空格：等待   ESC：退出",36,16);
+        font.draw(batch, interactionMessage, 500, 58);
+        for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
+            font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
+        }
+        map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point ->
+            font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         batch.end();
     }
     @Override public void dispose() { shapes.dispose(); batch.dispose(); font.dispose(); }
