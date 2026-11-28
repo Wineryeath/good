@@ -12,6 +12,8 @@ import com.jianghu.social.DialogueService;
 import com.jianghu.social.NpcSocialGraph;
 import com.jianghu.business.BusinessType;
 import com.jianghu.business.NpcBusiness;
+import com.jianghu.business.TradeGood;
+import com.jianghu.business.MarketPriceBook;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -34,6 +36,7 @@ public final class GameWorld {
     private final Map<String, String> independentHouseholds = new LinkedHashMap<>();
     private final Map<String, Integer> courtshipDays = new LinkedHashMap<>();
     private final Map<String, NpcBusiness> businesses = new LinkedHashMap<>();
+    private final MarketPriceBook marketPriceBook = new MarketPriceBook();
     private long lastBusinessDay;
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
@@ -424,6 +427,29 @@ public final class GameWorld {
         return business;
     }
 
+    /** 查询当日市价；价格由游戏日期与天气确定，不依赖现实时间。 */
+    public long marketPrice(TradeGood good) { return marketPriceBook.priceOf(good, clock.day(), weather); }
+    public Map<TradeGood, Long> marketPrices() { return marketPriceBook.pricesFor(clock.day(), weather); }
+
+    /** 按当日市价采购专营商品，库存与成本随产业保存。 */
+    public long restockNpcBusiness(String ownerNpcId, String businessId, TradeGood good, int quantity) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以采购");
+        long unitPrice = marketPrice(good);
+        long cost = business.restock(good, quantity, unitPrice);
+        life(ownerNpcId).remember("为" + business.name() + "进货" + good.displayName() + " " + quantity + " 件，花费 " + cost + " 文");
+        return cost;
+    }
+
+    /** 按市场价加产业等级溢价销售库存；销售所得进入金库。 */
+    public NpcBusiness.SaleReceipt sellNpcBusinessGoods(String ownerNpcId, String businessId, TradeGood good, int quantity) {
+        NpcBusiness business = requireBusiness(businessId);
+        if (!business.ownerNpcId().equals(ownerNpcId)) throw new IllegalArgumentException("只有产业主人可以安排销售");
+        long unitPrice = Math.multiplyExact(marketPrice(good), 100L + 3L * (business.level() - 1)) / 100L;
+        NpcBusiness.SaleReceipt receipt = business.sell(good, quantity, unitPrice);
+        life(ownerNpcId).remember("在" + business.name() + "售出" + good.displayName() + " " + quantity + " 件，毛利 " + receipt.grossProfitInWen() + " 文");
+        return receipt;
+    }
     /** 用产业金库升级经营规模，最高五级。 */
     public long upgradeNpcBusiness(String ownerNpcId, String businessId) {
         NpcBusiness business = requireBusiness(businessId);
