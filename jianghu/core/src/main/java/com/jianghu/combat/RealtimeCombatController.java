@@ -40,9 +40,13 @@ public final class RealtimeCombatController {
         cooldown = Math.max(0, cooldown - deltaSeconds);
         dodgeInvulnerability = Math.max(0, dodgeInvulnerability - deltaSeconds);
         actionTime += deltaSeconds;
-        if (phase == Phase.BLOCKING && cooldown == 0) phase = Phase.READY;
-        else if (phase != Phase.READY && cooldown == 0) phase = Phase.RECOVERING;
-        else if (phase == Phase.RECOVERING && actionTime >= 0.12f) phase = Phase.READY;
+        if (phase == Phase.RECOVERING) {
+            if (actionTime >= 0.12f) phase = Phase.READY;
+        } else if (phase == Phase.BLOCKING && cooldown == 0) {
+            phase = Phase.READY;
+        } else if (phase != Phase.READY && cooldown == 0) {
+            phase = Phase.RECOVERING;
+        }
     }
     public boolean blocksIncomingDamage() { return phase == Phase.BLOCKING; }
     public boolean avoidsIncomingDamage() { return dodgeInvulnerability > 0; }
