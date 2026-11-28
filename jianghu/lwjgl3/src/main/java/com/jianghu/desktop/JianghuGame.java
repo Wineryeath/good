@@ -98,7 +98,7 @@ public final class JianghuGame extends ApplicationAdapter {
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-            try { interactionMessage = world.learnFromMartialMaster(map); }
+            try { interactionMessage = overworldMode ? world.joinNearbyMartialSchool() : world.learnFromMartialMaster(map); }
             catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
@@ -109,8 +109,10 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueOrRealtimeSkillForCurrentStyle();
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechniqueOrRealtimeSkill("cloud_piercing");
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
-            try { interactionMessage = world.trainWithMartialMaster(map); playerAnimation.train(); }
-            catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+            try {
+                interactionMessage = overworldMode ? world.trainAtNearbyMartialSchool() : world.trainWithMartialMaster(map);
+                playerAnimation.train();
+            } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) performRealtimeAction(CombatAction.LIGHT_ATTACK);
@@ -156,7 +158,10 @@ public final class JianghuGame extends ApplicationAdapter {
                 () -> interactionMessage = "附近没有可以交互的地点。");
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            if (world.nearbyMartialMaster(map).isPresent()) interactionMessage = world.talkToMartialMaster(map);
+            if (overworldMode) {
+                try { interactionMessage = world.inspectNearbyMartialSchool(); }
+                catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+            } else if (world.nearbyMartialMaster(map).isPresent()) interactionMessage = world.talkToMartialMaster(map);
             else world.talkToNearby(map).ifPresentOrElse(
                 line -> interactionMessage = line,
                 () -> interactionMessage = "附近没有可以交谈的人。");
@@ -190,6 +195,11 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             shapes.setColor(Color.GOLD);
             for (var gate : overworld.gates()) shapes.rect(ox+gate.x()*tile+3, oy+gate.y()*tile+3, tile-6, tile-6);
+            shapes.setColor(new Color(.88f,.78f,.34f,1));
+            for (var site : com.jianghu.map.MartialSchoolSite.all()) if (site.region() == overworld.regionId()) {
+                shapes.rect(ox+site.x()*tile+2, oy+site.y()*tile+2, tile-4, tile-4);
+                shapes.rect(ox+site.x()*tile+4, oy+site.y()*tile+tile-5, tile-8, 3);
+            }
             PixelCharacterRenderer.draw(shapes, ox+overworld.x()*tile+tile/2, oy+overworld.y()*tile+tile/2-3, .65f, playerAnimation);
         } else {
             for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++) {
@@ -235,7 +245,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,overworldMode ? "世界地图：WASD行走 O返回城镇 F5存档 F9读档 金色方块为区域关隘" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
+        font.draw(batch,overworldMode ? "世界地图：WASD行走 E查看门派 M拜师 L修习 O返回城镇 F5存档 F9读档 金色标记为关隘/门派" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
@@ -265,6 +275,8 @@ public final class JianghuGame extends ApplicationAdapter {
             map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point -> font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         } else {
             overworld.gateAtPlayer().ifPresent(gate -> font.draw(batch,"关隘："+gate.name()+"（继续前进即可通行）",500,36));
+            com.jianghu.map.MartialSchoolSite.nearby(overworld.regionId(), overworld.x(), overworld.y()).ifPresent(site ->
+                font.draw(batch, "门派驻地："+site.school().name()+"（E查看 M拜师 L修习）", 500, 36));
         }
         batch.end();
     }
