@@ -24,6 +24,7 @@ public final class Quest {
         if (progress.equals(required)) status = Status.READY_TO_TURN_IN;
     }
     public void turnIn() { if (status != Status.READY_TO_TURN_IN) throw new IllegalStateException("任务目标尚未完成"); status = Status.COMPLETED; }
+    public Map<String,Integer> objectives() { return Map.copyOf(required); }
     public String id() { return id; }
     public Status status() { return status; }
     public Map<String,Integer> progress() { return Map.copyOf(progress); }
