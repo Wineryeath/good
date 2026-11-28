@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 1,
+  "world": {
+    "id": "jiangnan",
+    "name": "江南水乡",
+    "region": "江南",
+    "start": {
+      "map": "wupeng-town",
+      "x": 9,
+      "y": 9
+    },
+    "tileSize": 32,
+    "clock": {
+      "dayLengthMinutes": 1440,
+      "seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "solarTerms": [
+        "立春",
+        "雨水",
+        "惊蛰",
+        "春分",
+        "清明",
+        "谷雨",
+        "立夏",
+        "小满",
+        "芒种",
+        "夏至",
+        "小暑",
+        "大暑",
+        "立秋",
+        "处暑",
+        "白露",
+        "秋分",
+        "寒露",
+        "霜降",
+        "立冬",
+        "小雪",
+        "大雪",
+        "冬至",
+        "小寒",
+        "大寒"
+      ]
+    }
+  },
+  "regions": [
+    {
+      "id": "jiangnan",
+      "name": "江南水乡",
+      "unlock": "初始开放",
+      "maps": [
+        "wupeng-town",
+        "reed-marsh",
+        "misty-canal"
+      ],
+      "identity": "水网、商埠、田园与市井人情"
+    },
+    {
+      "id": "bamboo",
+      "name": "青竹山海",
+      "unlock": "完成乌篷镇主线·寻药",
+      "maps": [
+        "bamboo-village",
+        "hidden-valley"
+      ],
+      "identity": "竹林、山道、药谷与隐世门派"
+    },
+    {
+      "id": "snowridge",
+      "name": "昆仑雪岭",
+      "unlock": "基础内功达到三层",
+      "maps": [
+        "snow-pass",
+        "frost-temple"
+      ],
+      "identity": "雪原、古寺、寒潭与极地奇遇"
+    },
+    {
+      "id": "north",
+      "name": "塞北草原",
+      "unlock": "获得通关文牒",
+      "maps": [
+        "north-market",
+        "wind-grassland"
+      ],
+      "identity": "牧场、边市、马队与部族关系"
+    },
+    {
+      "id": "capital",
+      "name": "天阙京城",
+      "unlock": "声望达到知名",
+      "maps": [
+        "capital-city",
+        "imperial-court"
+      ],
+      "identity": "科举、官场、商会、权谋与朝局"
+    },
+    {
+      "id": "overseas",
+      "name": "东海诸岛",
+      "unlock": "获得航海资格并拥有船只",
+      "maps": [
+        "harbor",
+        "island-chain"
+      ],
+      "identity": "航海、海贸、岛屿生态与海外势力"
+    }
+  ],
+  "maps": [
+    {
+      "id": "wupeng-town",
+      "region": "jiangnan",
+      "name": "乌篷镇",
+      "size": {
+        "width": 25,
+        "height": 17
+      },
+      "spawn": {
+        "x": 9,
+        "y": 9
+      },
+      "layers": [
+        "ground",
+        "collision",
+        "decoration",
+        "interaction"
+      ],
+      "biomes": [
+        "water-town",
+        "farmland",
+        "canal"
+      ],
+      "districts": [
+        {
+          "id": "west-market",
+          "name": "西市",
+          "bounds": {
+            "x": 2,
+            "y": 7,
+            "w": 6,
+            "h": 5
+          },
+          "tags": [
+            "trade",
+            "crowd"
+          ]
+        },
+        {
+          "id": "rain-inn",
+          "name": "听雨街",
+          "bounds": {
+            "x": 5,
+            "y": 2,
+            "w": 6,
+            "h": 5
+          },
+          "tags": [
+            "lodging",
+            "food"
+          ]
+        },
+        {
+          "id": "stone-bridge",
+          "name": "石拱桥",
+          "bounds": {
+            "x": 10,
+            "y": 6,
+            "w": 4,
+            "h": 4
+          },
+          "tags": [
+            "landmark",
+            "crossing"
+          ]
+        },
+        {
+          "id": "east-bank",
+          "name": "东河埠",
+          "bounds": {
+            "x": 14,
+            "y": 2,
+            "w": 8,
+            "h": 11
+          },
+          "tags": [
+            "fishing",
+            "transport"
+          ]
+        }
+      ],
+      "points": [
+        {
+          "id": "inn-rain",
+          "kind": "inn",
+          "name": "听雨客栈",
+          "at": {
+            "x": 7,
+            "y": 3
+          },
+          "interactRange": 1,
+          "services": [
+            "sleep",
+            "meal",
+            "rumor"
+          ]
+        },
+        {
+          "id": "market-west",
+          "kind": "market",
+          "name": "乌篷集市",
+          "at": {
+            "x": 4,
+            "y": 9
+          },
+          "interactRange": 1,
+          "services": [
+            "buy",
+            "sell",
+            "appraise"
+          ]
+        },
+        {
+          "id": "bridge-stone",
+          "kind": "landmark",
+          "name": "石拱桥",
+          "at": {
+            "x": 11,
+            "y": 7
+          },
+          "interactRange": 1
+        },
+        {
+          "id": "tea-owner",
+          "kind": "npc",
+          "npcId": "npc-tea-owner",
+          "at": {
+            "x": 10,
+            "y": 4
+          },
+          "interactRange": 1
+        },
+        {
+          "id": "old-fisher",
+          "kind": "npc",
+          "npcId": "npc-old-fisher",
+          "at": {
+            "x": 17,
+            "y": 7
+          },
+          "interactRange": 1
+        },
+        {
+          "id": "herb-bank-01",
+          "kind": "resource",
+          "resourceId": "wild-herb",
+          "at": {
+            "x": 9,
+            "y": 11
+          },
+          "respawn": {
+            "type": "daily",
+            "atHour": 5
+          }
+        },
+        {
+          "id": "loquat-tree-01",
+          "kind": "resource",
+          "resourceId": "loquat",
+          "at": {
+            "x": 6,
+            "y": 7
+          },
+          "respawn": {
+            "type": "seasonal",
+            "seasons": [
+              "夏",
+              "秋"
+            ]
+          }
+        }
+      ],
+      "exits": [
+        {
+          "to": "reed-marsh",
+          "at": {
+            "x": 21,
+            "y": 8
+          },
+          "requires": "none"
+        },
+        {
+          "to": "bamboo-village",
+          "at": {
+            "x": 2,
+            "y": 4
+          },
+          "requires": "quest:jiangnan.herb-delivery"
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc-tea-owner",
+      "name": "沈掌柜",
+      "role": "茶摊老板",
+      "faction": "wupeng-townfolk",
+      "traits": [
+        "健谈",
+        "重信",
+        "精明"
+      ],
+      "schedule": [
+        {
+          "from": 6,
+          "to": 11,
+          "place": "tea-stall"
+        },
+        {
+          "from": 11,
+          "to": 14,
+          "place": "market-west"
+        },
+        {
+          "from": 14,
+          "to": 20,
+          "place": "tea-stall"
+        },
+        {
+          "from": 20,
+          "to": 24,
+          "place": "home"
+        }
+      ],
+      "disposition": {
+        "initial": 0,
+        "min": -100,
+        "max": 100
+      },
+      "services": [
+        "quest",
+        "rumor",
+        "trade"
+      ]
+    },
+    {
+      "id": "npc-old-fisher",
+      "name": "陆老七",
+      "role": "渔夫",
+      "faction": "wupeng-townfolk",
+      "traits": [
+        "沉稳",
+        "守时",
+        "爱酒"
+      ],
+      "schedule": [
+        {
+          "from": 5,
+          "to": 10,
+          "place": "east-bank"
+        },
+        {
+          "from": 10,
+          "to": 16,
+          "place": "river-hut"
+        },
+        {
+          "from": 16,
+          "to": 19,
+          "place": "east-bank"
+        },
+        {
+          "from": 19,
+          "to": 24,
+          "place": "home"
+        },
+        {
+          "from": 0,
+          "to": 5,
+          "place": "home"
+        }
+      ],
+      "disposition": {
+        "initial": 5,
+        "min": -100,
+        "max": 100
+      },
+      "services": [
+        "tutorial:fishing",
+        "rumor"
+      ]
+    },
+    {
+      "id": "npc-innkeeper",
+      "name": "周婶",
+      "role": "客栈掌柜",
+      "faction": "wupeng-townfolk",
+      "traits": [
+        "热心",
+        "细致"
+      ],
+      "schedule": [
+        {
+          "from": 5,
+          "to": 22,
+          "place": "inn-rain"
+        },
+        {
+          "from": 22,
+          "to": 24,
+          "place": "home"
+        },
+        {
+          "from": 0,
+          "to": 5,
+          "place": "home"
+        }
+      ],
+      "disposition": {
+        "initial": 10,
+        "min": -100,
+        "max": 100
+      },
+      "services": [
+        "sleep",
+        "meal",
+        "rumor"
+      ]
+    }
+  ]
+}
