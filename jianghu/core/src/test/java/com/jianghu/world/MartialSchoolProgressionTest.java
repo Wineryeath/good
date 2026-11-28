@@ -37,6 +37,8 @@ class MartialSchoolProgressionTest {
             if (i < 2) world.advanceMinutes(1440);
         }
         assertEquals(3, world.martialSchoolFavor("shaolin-jingang"));
+        assertEquals(30, world.martialSchoolContribution("shaolin-jingang"));
+        assertEquals(com.jianghu.combat.MartialSchoolRank.OUTER_DISCIPLE, world.martialSchoolRank("shaolin-jingang"));
         assertTrue(world.player().knowsTechnique("sweeping_staff"));
         assertTrue(world.player().learnedStyles().contains(com.jianghu.combat.MartialArtStyle.STAFF));
     }
@@ -53,6 +55,20 @@ class MartialSchoolProgressionTest {
         assertEquals(original.schoolMemberships(), restored.schoolMemberships());
         assertEquals(original.martialSchoolFavor("wudang-zixiao"), restored.martialSchoolFavor("wudang-zixiao"));
         assertEquals(original.snapshot().schoolTrainingDays(), restored.snapshot().schoolTrainingDays());
+        assertEquals(original.snapshot().schoolContribution(), restored.snapshot().schoolContribution());
+        assertEquals(original.martialSchoolRank("wudang-zixiao"), restored.martialSchoolRank("wudang-zixiao"));
         assertTrue(restored.player().learnedStyles().contains(com.jianghu.combat.MartialArtStyle.SWORD));
+    }
+    @Test void donationsAdvanceRankAndRejectInvalidOrUnaffordableAmounts() {
+        GameWorld world = world();
+        MartialSchoolSite site = MartialSchoolSite.find("emei-lingxiu").orElseThrow();
+        world.overworld().restorePosition(site.region(), site.x(), site.y());
+        world.joinNearbyMartialSchool();
+        assertThrows(IllegalArgumentException.class, () -> world.donateToNearbyMartialSchool(150));
+        assertThrows(IllegalStateException.class, () -> world.donateToNearbyMartialSchool(100_000));
+        assertTrue(world.donateToNearbyMartialSchool(300).contains("晋升"));
+        assertEquals(30, world.martialSchoolContribution("emei-lingxiu"));
+        assertEquals(com.jianghu.combat.MartialSchoolRank.OUTER_DISCIPLE, world.martialSchoolRank("emei-lingxiu"));
+        assertThrows(IllegalStateException.class, () -> world.donateToNearbyMartialSchool(100));
     }
 }
