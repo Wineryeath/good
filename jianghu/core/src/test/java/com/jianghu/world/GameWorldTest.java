@@ -107,4 +107,28 @@ class GameWorldTest {
         assertEquals(-11,world.socialGraph().relation("first","second").orElseThrow().strength());
     }
 
+    @Test void marriageAndChildbirthUpdateFamilyGraphAndMemories() {
+        Npc mother = new Npc("mother","阿兰","居民",List.of(),0);
+        Npc father = new Npc("father","阿远","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(mother,father,child));
+        world.marryNpcs("mother","father");
+        world.addNpcChild("mother","child");
+        assertEquals("father",world.familyRegistry().spouseOf("mother").orElseThrow());
+        assertEquals(List.of("mother","father"),world.familyRegistry().parentsOf("child"));
+        assertEquals(80,world.socialGraph().relation("mother","father").orElseThrow().strength());
+        assertEquals(85,world.socialGraph().relation("father","child").orElseThrow().strength());
+        assertTrue(world.life("mother").memories().stream().anyMatch(m -> m.contains("结为夫妻")));
+        assertTrue(world.life("child").memories().stream().anyMatch(m -> m.contains("阿兰")));
+    }
+
+    @Test void npcCannotHaveTwoSpouses() {
+        Npc a = new Npc("a","甲","居民",List.of(),0);
+        Npc b = new Npc("b","乙","居民",List.of(),0);
+        Npc c = new Npc("c","丙","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(a,b,c));
+        world.marryNpcs("a","b");
+        assertThrows(IllegalStateException.class, () -> world.marryNpcs("a","c"));
+    }
+
 }
