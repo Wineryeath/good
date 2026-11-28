@@ -23,7 +23,8 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
     OverworldRegion.RegionId overworldRegion, int overworldX, int overworldY,
     long lastAgedDay, long lastBusinessDay, Set<String> deathRecorded,
     Map<String, Long> lastSocialDay, Map<String, String> independentHouseholds,
-    Map<String, Integer> courtshipDays, Map<String, Long> masterTrainingDays, Map<String, Integer> masterFavor) {
+    Map<String, Integer> courtshipDays, Map<String, Long> masterTrainingDays, Map<String, Integer> masterFavor,
+    Set<String> schoolMemberships, Map<String, Long> schoolTrainingDays, Map<String, Integer> schoolFavor) {
     public GameWorldSnapshot {
         if (player == null || day < 1 || minuteOfDay < 0 || minuteOfDay >= 1440 || weather == null || weather.isBlank()
                 || lastAgedDay < 1 || lastBusinessDay < 1) throw new IllegalArgumentException("世界存档数据无效");
@@ -35,5 +36,8 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
         deathRecorded = Set.copyOf(deathRecorded); lastSocialDay = Map.copyOf(lastSocialDay);
         independentHouseholds = Map.copyOf(independentHouseholds); courtshipDays = Map.copyOf(courtshipDays);
         masterTrainingDays = Map.copyOf(masterTrainingDays); masterFavor = Map.copyOf(masterFavor);
+        schoolMemberships = Set.copyOf(schoolMemberships); schoolTrainingDays = Map.copyOf(schoolTrainingDays); schoolFavor = Map.copyOf(schoolFavor);
+        if (!schoolMemberships.containsAll(schoolTrainingDays.keySet()) || !schoolMemberships.containsAll(schoolFavor.keySet()))
+            throw new IllegalArgumentException("门派修习记录与弟子名册不一致");
     }
 }
