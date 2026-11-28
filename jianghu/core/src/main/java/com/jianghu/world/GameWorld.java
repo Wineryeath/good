@@ -133,6 +133,19 @@ public final class GameWorld {
             .orElseThrow(() -> new IllegalStateException("附近没有可交互的设施"));
         return useNearbyMartialSchoolFacility(point.id());
     }
+    public String useInsideMartialSchoolFacility(com.jianghu.map.MartialSchoolFacility.Type type) {
+        if (!insideMartialSchool()) throw new IllegalStateException("当前不在门派内院");
+        String suffix = switch (type) {
+            case TRAINING_GROUND -> "-training";
+            case SCRIPTURE_HALL -> "-scripture";
+            case MEDITATION_HALL -> "-meditation";
+            case INFIRMARY -> "-infirmary";
+        };
+        var point = activeSchoolInterior.map().points().stream().filter(p -> p.id().endsWith(suffix)
+            && p.canInteractFrom(interiorX,interiorY)).findFirst()
+            .orElseThrow(() -> new IllegalStateException("请走近对应设施后再使用"));
+        return useNearbyMartialSchoolFacility(point.id());
+    }
     /** 当前地图附近的实体门派驻地；只有抵达对应区域才能拜入该门。 */
     public Optional<com.jianghu.map.MartialSchoolSite> nearbyMartialSchoolSite() {
         return com.jianghu.map.MartialSchoolSite.nearby(overworldExplorer.regionId(), overworldExplorer.x(), overworldExplorer.y());
