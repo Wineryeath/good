@@ -8,6 +8,8 @@ import com.jianghu.business.MarketRegion;
 import com.jianghu.business.RegionalMarketSnapshot;
 import com.jianghu.quest.QuestSnapshot;
 import com.jianghu.business.TradeCaravanSnapshot;
+import com.jianghu.npc.NpcFamilySnapshot;
+import com.jianghu.social.NpcSocialGraphSnapshot;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,6 +18,7 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
     Map<String, NpcLifeSnapshot> npcLives, Map<String, NpcRelationshipSnapshot> relationships,
     Map<String, NpcBusinessSnapshot> businesses, Map<MarketRegion, RegionalMarketSnapshot> markets,
     Map<String, QuestSnapshot> quests, Map<String, Long> questRewards, Map<String, TradeCaravanSnapshot> caravans,
+    NpcFamilySnapshot family, NpcSocialGraphSnapshot socialGraph,
     long lastAgedDay, long lastBusinessDay, Set<String> deathRecorded,
     Map<String, Long> lastSocialDay, Map<String, String> independentHouseholds,
     Map<String, Integer> courtshipDays, Map<String, Long> masterTrainingDays, Map<String, Integer> masterFavor) {
@@ -24,6 +27,7 @@ public record GameWorldSnapshot(PlayerSnapshot player, long day, int minuteOfDay
                 || lastAgedDay < 1 || lastBusinessDay < 1) throw new IllegalArgumentException("世界存档数据无效");
         npcLives = Map.copyOf(npcLives); relationships = Map.copyOf(relationships);
         businesses = Map.copyOf(businesses); markets = Map.copyOf(markets); quests = Map.copyOf(quests); questRewards = Map.copyOf(questRewards); caravans = Map.copyOf(caravans);
+        if (family == null || socialGraph == null) throw new IllegalArgumentException("NPC关系网络存档缺失");
         deathRecorded = Set.copyOf(deathRecorded); lastSocialDay = Map.copyOf(lastSocialDay);
         independentHouseholds = Map.copyOf(independentHouseholds); courtshipDays = Map.copyOf(courtshipDays);
         masterTrainingDays = Map.copyOf(masterTrainingDays); masterFavor = Map.copyOf(masterFavor);
