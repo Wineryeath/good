@@ -124,7 +124,7 @@ public final class GameWorld {
                 player.recoverInnerEnergy(8); advanceMinutes(30);
                 return "你在" + facility.name() + "研读本门典籍，武学经验 +12，内力恢复 8。" + (levels > 0 ? "境界提升至第" + player.martialLevel() + "重。" : "");
             case MEDITATION_HALL:
-                if ((activeCombat != null && activeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+                if ((activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
                         || (activeRealtimeCombat != null && activeRealtimeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING))
                     throw new IllegalStateException("交手之际无法入静室运功");
                 player.recoverInnerEnergy(40); player.recoverStamina(8); advanceMinutes(45);
