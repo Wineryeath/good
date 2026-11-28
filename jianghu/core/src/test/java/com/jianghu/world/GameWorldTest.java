@@ -2,6 +2,7 @@ package com.jianghu.world;
 
 import com.jianghu.character.Player;
 import com.jianghu.business.BusinessType;
+import com.jianghu.business.TradeGood;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.npc.NpcFamilyRegistry;
@@ -453,6 +454,20 @@ class GameWorldTest {
         assertEquals(0, farm.treasuryInWen());
         assertEquals(100, farm.debtInWen());
         assertTrue(farm.lastReport().adverseDay());
+    }
+
+    @Test void worldMarketConnectsBusinessRestockingAndSales() {
+        Npc owner = new Npc("owner", "农庄主人", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner));
+        var farm = world.foundNpcBusiness("owner", "farm", "河畔农庄", BusinessType.FARM, 100, 0, 0, 1000);
+        long grainPrice = world.marketPrice(TradeGood.GRAIN);
+        assertEquals(grainPrice * 5, world.restockNpcBusiness("owner", "farm", TradeGood.GRAIN, 5));
+        assertEquals(5, farm.stockOf(TradeGood.GRAIN));
+        var sale = world.sellNpcBusinessGoods("owner", "farm", TradeGood.GRAIN, 5);
+        assertEquals(5, sale.quantity());
+        assertTrue(sale.revenueInWen() > 0);
+        assertEquals(0, farm.stockOf(TradeGood.GRAIN));
+        assertThrows(IllegalArgumentException.class, () -> world.restockNpcBusiness("owner", "farm", TradeGood.MEAL, 1));
     }
 
 }
