@@ -349,8 +349,10 @@ class GameWorldTest {
         GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(young));
         world.life("young").initializeAge(17);
         assertThrows(IllegalStateException.class,() -> world.chooseNpcProfession("young","农夫"));
-        world.life("young").passDay();
-        assertThrows(IllegalStateException.class,() -> world.chooseNpcProfession("young","教书先生"));
+        Npc adult = new Npc("adult","阿青","居民",List.of(),0);
+        GameWorld adultWorld = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(adult));
+        adultWorld.life("adult").initializeAge(18);
+        assertThrows(IllegalStateException.class,() -> adultWorld.chooseNpcProfession("adult","教书先生"));
     }
 
 
