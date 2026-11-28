@@ -43,6 +43,34 @@ public final class CombatEncounter {
         if(player.health()==0){status=Status.LOST;log.add("你力竭倒地，战斗失败。");}
         return log.get(log.size()-1);
     }
+    /** 使用已掌握且与当前流派匹配的招式；资源不足时不会消耗任一资源。 */
+    public String useTechnique(String techniqueId) {
+        requireOngoing();
+        MartialTechnique technique = MartialTechnique.find(techniqueId)
+            .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
+        if (!player.knowsTechnique(techniqueId)) throw new IllegalStateException("尚未学会这招");
+        if (player.martialStyle() != technique.style()) throw new IllegalStateException("当前武学路数与招式不合");
+        if (player.stamina() < technique.staminaCost() || player.innerEnergy() < technique.innerCost())
+            throw new IllegalStateException("体力或内力不足，无法施展" + technique.name());
+        player.spendStamina(technique.staminaCost());
+        player.spendInnerEnergy(technique.innerCost());
+        rounds++;
+        int damage = Math.max(1, 3 + player.attackPower() + player.martialPower() + technique.power() - enemy.defense());
+        enemy.takeDamage(damage);
+        log.add("你施展" + technique.name() + "，对" + enemy.name() + "造成" + damage + "点伤害。");
+        if (enemy.defeated()) {
+            status = Status.WON; player.addMoney(enemy.rewardWen());
+            if (enemy.dropItem()!=null && !enemy.dropItem().isBlank() && enemy.dropCount()>0) player.addItem(enemy.dropItem(),enemy.dropCount());
+            int levels=player.gainMartialExperience(enemy.experienceReward()); player.changeReputation(1);
+            log.add("战胜"+enemy.name()+"，获得"+enemy.rewardWen()+"文、武学经验"+enemy.experienceReward()+"点");
+            if(levels>0) log.add("武学境界提升至第"+player.martialLevel()+"重！");
+            return log.get(log.size()-1);
+        }
+        int received=Math.max(1,enemy.attack()-player.defensePower()); player.changeHealth(-received);
+        log.add(enemy.name()+"反击，你受到"+received+"点伤害。");
+        if(player.health()==0){status=Status.LOST;log.add("你力竭倒地，战斗失败。");}
+        return log.get(log.size()-1);
+    }
     public String flee() {
         requireOngoing(); status=Status.FLED; log.add("你趁对方换招之际脱身。"); return log.get(log.size()-1);
     }
