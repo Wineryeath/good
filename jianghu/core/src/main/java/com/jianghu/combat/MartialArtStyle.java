@@ -12,6 +12,6 @@ public enum MartialArtStyle {
     MartialArtStyle(String id, String name, int attackBonus, int defenseBonus, String description) {
         this.id=id; this.name=name; this.attackBonus=attackBonus; this.defenseBonus=defenseBonus; this.description=description;
     }
-    public String id(){return id;} public String name(){return name;} public int attackBonus(){return attackBonus;}
+    public String id(){return id;} public String displayName(){return name;} public int attackBonus(){return attackBonus;}
     public int defenseBonus(){return defenseBonus;} public String description(){return description;}
 }
