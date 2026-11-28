@@ -21,6 +21,9 @@ class GameWorldSaveServiceTest {
         original.life("npc-inn").changeMood(13); original.life("npc-inn").creditMoney(260);
         original.life("npc-inn").remember("收到旅人赠予的草药");
         original.relationship("npc-inn").talk(true); original.relationship("npc-inn").changeTrust(4);
+        var inn = original.foundNpcBusiness("npc-inn", "family-inn", "周家客栈", com.jianghu.business.BusinessType.INN, 120, 15, 8, 3000);
+        inn.restock(com.jianghu.business.TradeGood.MEAL, 4, 25); inn.hire("@player");
+        original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).buy(7, com.jianghu.business.TradeGood.HERB);
         original.advanceMinutes(70);
         var directory = Files.createTempDirectory("jianghu-world-save");
         var file = directory.resolve("world-1.sav");
@@ -40,6 +43,14 @@ class GameWorldSaveServiceTest {
         assertEquals(original.life("npc-inn").memories(), restored.life("npc-inn").memories());
         assertEquals(original.relationship("npc-inn").favor(), restored.relationship("npc-inn").favor());
         assertEquals(original.relationship("npc-inn").trust(), restored.relationship("npc-inn").trust());
+        var restoredInn = restored.npcBusiness("family-inn").orElseThrow();
+        assertEquals(inn.treasuryInWen(), restoredInn.treasuryInWen());
+        assertEquals(inn.inventory(), restoredInn.inventory());
+        assertEquals(inn.inventoryCostBasis(), restoredInn.inventoryCostBasis());
+        assertEquals(original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).stock(),
+            restored.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).stock());
+        assertEquals(original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).demand(),
+            restored.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).demand());
         Files.deleteIfExists(file); Files.deleteIfExists(directory);
     }
 }
