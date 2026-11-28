@@ -178,7 +178,11 @@ public final class NpcLifeState {
         profession = snapshot.profession(); vocationalTraining.clear(); vocationalTraining.putAll(snapshot.vocationalTraining());
         moneyInWen = snapshot.moneyInWen(); health = snapshot.health(); alive = snapshot.alive();
         estateTransferred = snapshot.estateTransferred(); illness = snapshot.illness(); illnessSeverity = snapshot.illnessSeverity();
-        memories.clear(); memories.addAll(snapshot.memories());
+        memories.clear();
+        for (String memory : snapshot.memories()) {
+            memories.addLast(memory);
+            while (memories.size() > MEMORY_LIMIT) memories.removeFirst();
+        }
     }
     private static int clamp(int value) { return Math.max(0, Math.min(100, value)); }
 }
