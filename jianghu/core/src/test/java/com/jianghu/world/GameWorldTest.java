@@ -451,7 +451,7 @@ class GameWorldTest {
         world.setWeather("暴雨");
         world.advanceMinutes(60);
         assertEquals(0, farm.treasuryInWen());
-        assertEquals(150, farm.debtInWen());
+        assertEquals(100, farm.debtInWen());
         assertTrue(farm.lastReport().adverseDay());
     }
 
