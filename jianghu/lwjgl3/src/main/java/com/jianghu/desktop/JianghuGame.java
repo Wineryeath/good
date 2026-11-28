@@ -35,7 +35,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private float visualTime;
 
     @Override public void create() {
-        shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
+        shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = ChineseFontFactory.create(1f);
         artAssets = new ArtAssetCatalog();
         map = GameMap.starterTown();
         world = new GameWorld(new Player("无名旅人"), new WorldClock(1, 360), List.of(
@@ -55,6 +55,18 @@ public final class JianghuGame extends ApplicationAdapter {
         visualTime += delta;
         playerAnimation.update(delta);
         world.updateRealtimeCombat(delta);
+        world.activeRealtimeCombat().filter(fight -> fight.status() != com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+            .ifPresent(fight -> {
+                interactionMessage = switch (fight.status()) {
+                    case WON -> "战斗胜利，敌人已被击败。";
+                    case LOST -> "你已重伤昏迷，需前往医馆疗伤。";
+                    case FLED -> "你已脱离战斗。";
+                    case ONGOING -> interactionMessage;
+                };
+                world.clearFinishedEncounters();
+            });
+        world.activeCombat().filter(fight -> fight.status() != com.jianghu.combat.CombatEncounter.Status.ONGOING)
+            .ifPresent(fight -> world.clearFinishedEncounters());
         if (world.player().health() < previousPlayerHealth) playerAnimation.hurt();
         previousPlayerHealth = world.player().health();
         moveCooldown -= delta;
@@ -244,8 +256,11 @@ public final class JianghuGame extends ApplicationAdapter {
             shapes.rect(ox+3*tile,oy+8*tile,3*tile,3*tile);
             shapes.setColor(new Color(.78f,.30f,.20f,1));
             for (GameWorld.NpcPosition npc : world.npcPositions(map))
-                shapes.circle(ox+npc.x()*tile+tile/2,oy+npc.y()*tile+tile/2,8);
+                PixelCharacterRenderer.draw(shapes, ox+npc.x()*tile+tile/2, oy+npc.y()*tile+tile/2-5, .78f, NPC_IDLE_ANIMATION);
             PixelCharacterRenderer.draw(shapes, ox+world.player().x()*tile+tile/2, oy+world.player().y()*tile+tile/2-8, 1.15f, playerAnimation);
+            world.activeRealtimeCombat().filter(fight -> fight.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+                .ifPresent(fight -> PixelCharacterRenderer.draw(shapes,
+                    ox+world.player().x()*tile+tile*1.55f, oy+world.player().y()*tile+tile/2-8, 1.0f, ENEMY_IDLE_ANIMATION));
         }
         shapes.end();
 
@@ -291,8 +306,8 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"武学："+world.player().martialStyle().displayName()+"  内力 "+world.player().innerEnergy()+"  境界 "+world.player().martialLevel()+" 重  经验 "+world.player().martialExperience()+"  师门信任 "+world.martialMasterFavor("master-river-sword")+"/3",36,118);
         font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+"  熟食 "+world.player().inventory().getOrDefault("meal",0)+"  清茶 "+world.player().inventory().getOrDefault("tea",0)+"  药 "+world.player().inventory().getOrDefault("medicine",0),36,36);
         if (inventoryOpen) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.04f,0.06f,0.07f,0.92f);
-            shapes.rect(Gdx.graphics.getWidth()-330, Gdx.graphics.getHeight()-300, 310, 250); shapes.end();
+            drawOverlayRect(Gdx.graphics.getWidth()-330, Gdx.graphics.getHeight()-300, 310, 250,
+                new Color(0.04f,0.06f,0.07f,0.94f));
             font.draw(batch,"行囊 · 物品分类",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-72);
             int line = 0;
             for (var category : com.jianghu.item.InventoryItem.Category.values()) {
@@ -308,8 +323,8 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,world.insideMartialSchool() ? "门派内院：WASD行走 F使用附近设施 O离开内院；金色圆点为演武坪、藏经阁、静修室与医馆" : overworldMode ? "世界地图：WASD行走 E查看门派 Enter进入内院 M拜师 Q捐献100文 L修习 P读谱 H静修 R疗伤 O返回城镇 F5存档 F9读档" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
-            shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
-            shapes.rect(Gdx.graphics.getWidth()/2f-230,Gdx.graphics.getHeight()/2f-110,460,220); shapes.end();
+            drawOverlayRect(Gdx.graphics.getWidth()/2f-230,Gdx.graphics.getHeight()/2f-110,460,220,
+                new Color(0.03f,0.02f,0.02f,0.92f));
             font.draw(batch,"实时遭遇 · "+fight.enemy().name()+"  "+fight.status(),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+82);
             font.draw(batch,"敌方生命："+fight.enemy().health()+" / "+fight.enemy().maxHealth()+"   "+(fight.enemyTelegraphing()?"<危险> 敌人即将出刀":"敌人正在寻找破绽"),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+52);
             font.draw(batch,"你的生命："+world.player().health()+"   体力："+world.player().stamina()+"   连击："+fight.controller().comboCount(),Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f+22);
@@ -319,8 +334,8 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (world.activeCombat().isPresent()) {
             var fight = world.activeCombat().orElseThrow();
-            shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.88f);
-            shapes.rect(Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-105,420,210); shapes.end();
+            drawOverlayRect(Gdx.graphics.getWidth()/2f-210,Gdx.graphics.getHeight()/2f-105,420,210,
+                new Color(0.03f,0.02f,0.02f,0.92f));
             font.draw(batch,"遭遇战 · "+fight.enemy().name()+"  "+fight.status(),Gdx.graphics.getWidth()/2f-190,Gdx.graphics.getHeight()/2f+78);
             font.draw(batch,"敌方生命："+fight.enemy().health()+"/"+fight.enemy().maxHealth()+"  攻击："+fight.enemy().attack()+"  防御："+fight.enemy().defense(),Gdx.graphics.getWidth()/2f-190,Gdx.graphics.getHeight()/2f+48);
             font.draw(batch,"你：健康 "+world.player().health()+" 体力 "+world.player().stamina()+"  攻击 "+(3+world.player().attackPower()+world.player().martialPower())+" 防御 "+world.player().defensePower(),Gdx.graphics.getWidth()/2f-190,Gdx.graphics.getHeight()/2f+18);
@@ -343,6 +358,20 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         batch.end();
     }
+    private void drawOverlayRect(float x, float y, float width, float height, Color color) {
+        // ShapeRenderer changes the active shader. Never run it inside a SpriteBatch begin/end pair.
+        batch.end();
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(color);
+        shapes.rect(x, y, width, height);
+        shapes.end();
+        batch.begin();
+        font.setColor(Color.WHITE);
+    }
+
+    private static final CharacterAnimationController NPC_IDLE_ANIMATION = new CharacterAnimationController();
+    private static final CharacterAnimationController ENEMY_IDLE_ANIMATION = new CharacterAnimationController();
+
     private static String npcActorPrefix(String role) {
         String value = role == null ? "" : role;
         if (value.contains("守") || value.contains("兵") || value.contains("捕快")) return "npc_guard";
@@ -390,15 +419,31 @@ public final class JianghuGame extends ApplicationAdapter {
         };
         useTechnique(id);
     }
-    private java.nio.file.Path savePath() { return Gdx.files.local("saves/slot-1.sav").file().toPath(); }
+    private java.nio.file.Path savePath() {
+        return Gdx.files.external("一人一江湖/saves/slot-1.sav").file().toPath();
+    }
+    private java.nio.file.Path legacySavePath() {
+        return Gdx.files.local("saves/slot-1.sav").file().toPath();
+    }
     private void saveGame() {
         try { saveService.save(savePath(), world); interactionMessage = "存档成功：玩家、NPC生活、关系、世界时间与天气已保存。"; }
         catch (java.io.IOException | IllegalArgumentException ex) { interactionMessage = "存档失败：" + ex.getMessage(); }
     }
     private void loadGame() {
-        try { world.restoreSnapshot(saveService.load(savePath())); previousPlayerHealth = world.player().health();
-            playerAnimation.revive(); interactionMessage = "读档成功：已恢复玩家、NPC生活、关系、世界时间与天气。"; }
-        catch (java.io.IOException | IllegalArgumentException ex) { interactionMessage = "读档失败：" + ex.getMessage(); }
+        try {
+            java.nio.file.Path target = savePath();
+            if (!java.nio.file.Files.exists(target) && java.nio.file.Files.exists(legacySavePath())) {
+                java.nio.file.Files.createDirectories(target.getParent());
+                java.nio.file.Files.copy(legacySavePath(), target);
+            }
+            world.restoreSnapshot(saveService.load(target));
+            previousPlayerHealth = world.player().health();
+            playerAnimation.revive();
+            world.clearFinishedEncounters();
+            interactionMessage = "读档成功：已恢复玩家、NPC生活、关系、世界时间与天气。";
+        } catch (java.io.IOException | IllegalArgumentException ex) {
+            interactionMessage = "读档失败：" + ex.getMessage();
+        }
     }
     private void startCombat() {
         try { world.startRealtimeBanditEncounter(); interactionMessage = "山道劫匪出现！注意敌人出刀预警：X轻击、Shift重击、V格挡、空格闪避。"; }
