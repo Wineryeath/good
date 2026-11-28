@@ -137,6 +137,33 @@ public final class GameWorld {
 
 
 
+
+    /** 监护人教导 6 至 17 岁子女；职业经验与家境会提升教学效果。 */
+    public int teachNpcChild(String guardianNpcId, String childNpcId, String subject, int effort) {
+        Npc guardian = requireNpc(guardianNpcId);
+        Npc child = requireNpc(childNpcId);
+        requireDescription(subject);
+        if (effort < 1 || effort > 10) throw new IllegalArgumentException("教学投入必须在 1..10 之间");
+        if (!familyRegistry.parentsOf(childNpcId).contains(guardianNpcId))
+            throw new IllegalArgumentException("只有登记的父母才能教导孩子");
+        NpcLifeState guardianLife = life(guardianNpcId);
+        NpcLifeState childLife = life(childNpcId);
+        if (!guardianLife.alive()) throw new IllegalStateException("已故监护人无法教学");
+        if (!childLife.alive()) throw new IllegalStateException("已故孩子无法学习");
+        if (childLife.ageYears() < 6 || childLife.ageYears() >= 18)
+            throw new IllegalStateException("只有 6 至 17 岁的孩子适合接受家庭教学");
+        int bonus = 0;
+        if (guardian.role().contains("先生") || guardian.role().contains("教书")
+                || guardian.role().contains("学者")) bonus += 3;
+        if (guardianLife.moneyInWen() >= 2000) bonus += 2;
+        int gained = effort + bonus;
+        childLife.study(gained);
+        childLife.remember(guardian.name() + "教导自己" + subject + "，学识增长 " + gained);
+        guardianLife.remember("教导孩子" + child.name() + subject);
+        guardianLife.changeMood(1);
+        return gained;
+    }
+
     /** 每个游戏日结算自主婚恋：成年单身 NPC 的互相信任关系在共同生活中逐渐发展。 */
     private void settleNpcRomance() {
         for (int i = 0; i < npcs.size(); i++) {
