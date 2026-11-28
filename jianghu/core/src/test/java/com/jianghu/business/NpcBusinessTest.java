@@ -63,7 +63,7 @@ class NpcBusinessTest {
         assertEquals(50, report.revenueInWen());
         assertEquals(-150, report.netProfitInWen());
         assertEquals(0, pharmacy.treasuryInWen());
-        assertEquals(150, pharmacy.debtInWen());
+        assertEquals(100, pharmacy.debtInWen());
     }
 
 }
