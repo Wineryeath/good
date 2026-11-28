@@ -66,4 +66,24 @@ class NpcBusinessTest {
         assertEquals(100, pharmacy.debtInWen());
     }
 
+    @Test void inventoryPurchasesAndSalesTrackCostBasisAndGrossProfit() {
+        NpcBusiness farm = new NpcBusiness("farm", "河畔农庄", BusinessType.FARM, "owner", 100, 0, 0, 1000);
+        assertEquals(180, farm.restock(TradeGood.GRAIN, 10, 18));
+        assertEquals(10, farm.stockOf(TradeGood.GRAIN));
+        var sale = farm.sell(TradeGood.GRAIN, 10, 30);
+        assertEquals(300, sale.revenueInWen());
+        assertEquals(180, sale.costBasisInWen());
+        assertEquals(120, sale.grossProfitInWen());
+        assertEquals(1120, farm.treasuryInWen());
+        assertEquals(120, farm.retainedProfitInWen());
+        assertEquals(0, farm.stockOf(TradeGood.GRAIN));
+    }
+    @Test void inventoryRejectsUnsupportedGoodsAndOverselling() {
+        NpcBusiness inn = new NpcBusiness("inn", "听雨客栈", BusinessType.INN, "owner", 100, 500);
+        assertThrows(IllegalArgumentException.class, () -> inn.restock(TradeGood.HERB, 1, 10));
+        inn.restock(TradeGood.MEAL, 2, 10);
+        assertThrows(IllegalArgumentException.class, () -> inn.sell(TradeGood.MEAL, 3, 20));
+        assertThrows(IllegalStateException.class, () -> inn.restock(TradeGood.TEA, 100, 100));
+    }
+
 }
