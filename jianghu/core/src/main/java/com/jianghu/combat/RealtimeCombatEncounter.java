@@ -60,13 +60,14 @@ public final class RealtimeCombatEncounter {
         if (deltaSeconds < 0) throw new IllegalArgumentException("战斗时间不能倒退");
         if (status != Status.ONGOING) return;
         controller.update(deltaSeconds);
-        if (enemyRecovery > 0) enemyRecovery = Math.max(0, enemyRecovery - deltaSeconds);
-        if (!enemyTelegraph && enemyRecovery == 0) {
-            enemyWindup -= deltaSeconds;
-            if (enemyWindup <= 0) { enemyTelegraph = true; enemyRecovery = 0.32f; }
-        } else if (enemyTelegraph) {
+        if (enemyTelegraph) {
             enemyRecovery -= deltaSeconds;
             if (enemyRecovery <= 0) resolveEnemyStrike();
+        } else if (enemyRecovery > 0) {
+            enemyRecovery = Math.max(0, enemyRecovery - deltaSeconds);
+        } else {
+            enemyWindup -= deltaSeconds;
+            if (enemyWindup <= 0) { enemyTelegraph = true; enemyRecovery = 0.32f; }
         }
     }
 
