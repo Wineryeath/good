@@ -428,4 +428,31 @@ class GameWorldTest {
         assertThrows(IllegalArgumentException.class, () -> world.inheritNpcBusiness("farm", "stranger"));
     }
 
+    @Test void businessPaysWagesAndOwnerCanDistributeProfit() {
+        Npc owner = new Npc("owner", "掌柜", "居民", List.of(), 0);
+        Npc child = new Npc("child", "小禾", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner, child));
+        world.addNpcChild("owner", "child");
+        var inn = world.foundNpcBusiness("owner", "inn", "听雨客栈", BusinessType.INN, 500, 100, 50, 1000);
+        world.hireForNpcBusiness("owner", "inn", "child");
+        long before = world.life("child").moneyInWen();
+        world.advanceMinutes(24 * 60);
+        assertEquals(before + 50, world.life("child").moneyInWen());
+        assertEquals(350, inn.retainedProfitInWen());
+        assertEquals(175, world.distributeNpcBusinessProfit("owner", "inn", 50));
+        assertEquals(before + 225, world.life("child").moneyInWen());
+        assertEquals(1175, inn.treasuryInWen());
+    }
+
+    @Test void severeWeatherReducesBusinessRevenueAndCanCauseDebt() {
+        Npc owner = new Npc("owner", "掌柜", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 23 * 60), List.of(owner));
+        var farm = world.foundNpcBusiness("owner", "farm", "河畔农庄", BusinessType.FARM, 100, 200, 0, 50);
+        world.setWeather("暴雨");
+        world.advanceMinutes(60);
+        assertEquals(0, farm.treasuryInWen());
+        assertEquals(150, farm.debtInWen());
+        assertTrue(farm.lastReport().adverseDay());
+    }
+
 }
