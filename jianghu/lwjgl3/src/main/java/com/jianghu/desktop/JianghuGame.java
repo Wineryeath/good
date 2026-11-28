@@ -94,8 +94,24 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) equipItem("leather_armor");
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
         if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-            try { interactionMessage = world.meditate(); }
-            catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+            try {
+                if (overworldMode) {
+                    var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派静室"));
+                    interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-meditation");
+                } else interactionMessage = world.meditate();
+            } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && overworldMode) {
+            try {
+                var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派藏经阁"));
+                interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-scripture");
+            } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && overworldMode) {
+            try {
+                var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派医馆"));
+                interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-infirmary");
+            } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             try { interactionMessage = overworldMode ? world.joinNearbyMartialSchool() : world.learnFromMartialMaster(map); }
@@ -245,7 +261,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,overworldMode ? "世界地图：WASD行走 E查看门派 M拜师 L修习 O返回城镇 F5存档 F9读档 金色标记为关隘/门派" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
+        font.draw(batch,overworldMode ? "世界地图：WASD行走 E查看门派 M拜师 L修习 P读谱 H静修 R疗伤 O返回城镇 F5存档 F9读档 金色标记为关隘/门派" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 F5存档 F9读档 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
