@@ -518,4 +518,18 @@ class GameWorldTest {
         assertEquals(60, caravan.delayMinutes());
     }
 
+    @Test void caravanAmbushInjuresItsWeakestCrewMemberAndRecordsTheWound() {
+        Npc merchant = new Npc("merchant", "行商", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(merchant));
+        world.life("merchant").creditMoney(10000);
+        var caravan = world.createTradeCaravan("merchant", "raid", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
+        world.loadTradeCaravan("merchant", "raid", TradeGood.TEA, 8);
+        world.departTradeCaravan("merchant", "raid");
+        world.advanceMinutes(540);
+        assertEquals(TradeCaravan.State.COMPLETED, caravan.state());
+        assertEquals(75, world.life("merchant").health());
+        assertTrue(world.life("merchant").memories().stream().anyMatch(m -> m.contains("受伤")));
+        assertTrue(world.life("merchant").memories().stream().anyMatch(m -> m.contains("途中损失货物")));
+    }
+
 }
