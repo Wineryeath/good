@@ -207,8 +207,10 @@ public final class GameWorld {
         for (var entry : regionalMarkets.entrySet()) marketSnapshots.put(entry.getKey(), com.jianghu.business.RegionalMarketSnapshot.capture(entry.getValue()));
         Map<String, com.jianghu.quest.QuestSnapshot> questSnapshots = new LinkedHashMap<>();
         for (var entry : playerQuests.entrySet()) questSnapshots.put(entry.getKey(), com.jianghu.quest.QuestSnapshot.capture(entry.getValue()));
+        Map<String, com.jianghu.business.TradeCaravanSnapshot> caravanSnapshots = new LinkedHashMap<>();
+        for (var entry : caravans.entrySet()) caravanSnapshots.put(entry.getKey(), entry.getValue().snapshot());
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
-            weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
             independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
@@ -231,6 +233,13 @@ public final class GameWorld {
             throw new IllegalArgumentException("存档任务列表与当前场景不一致");
         for (var entry : snapshot.quests().entrySet()) playerQuests.get(entry.getKey()).restoreSnapshot(entry.getValue());
         questRewards.clear(); questRewards.putAll(snapshot.questRewards());
+        caravans.clear();
+        for (var entry : snapshot.caravans().entrySet()) {
+            var c = entry.getValue();
+            if (!expectedIds.containsAll(c.crew())) throw new IllegalArgumentException("商队成员与当前 NPC 名册不匹配");
+            TradeCaravan restored = new TradeCaravan(c.id(), c.ownerNpcId(), c.origin(), c.destination());
+            restored.restoreSnapshot(c); caravans.put(entry.getKey(), restored);
+        }
         businesses.clear();
         for (var entry : snapshot.businesses().entrySet()) {
             var b = entry.getValue();
