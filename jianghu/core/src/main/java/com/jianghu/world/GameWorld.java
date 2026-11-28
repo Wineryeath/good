@@ -71,6 +71,32 @@ public final class GameWorld {
         if (activeCombat == null) throw new IllegalStateException("当前没有进行中的战斗");
         return activeCombat.flee();
     }
+    /** 付费向江湖师友求教一门武学流派；已学会的流派不会重复收费。 */
+    public String learnMartialStyle(com.jianghu.combat.MartialArtStyle style, long feeInWen) {
+        if (style == null || feeInWen < 0) throw new IllegalArgumentException("武学或学费无效");
+        if (player.learnedStyles().contains(style)) return "你已经掌握" + style.name() + "。";
+        if (player.moneyInWen() < feeInWen) throw new IllegalStateException("银钱不足，无法拜师学艺");
+        player.addMoney(-feeInWen); player.learnStyle(style);
+        return "你付出" + feeInWen + "文，习得" + style.name() + "：" + style.description();
+    }
+    /** 学习招式前必须先掌握其所属流派；招式一经习得永久保留。 */
+    public String learnMartialTechnique(String techniqueId, long feeInWen) {
+        var technique = com.jianghu.combat.MartialTechnique.find(techniqueId)
+            .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
+        if (player.knowsTechnique(techniqueId)) return "你已经学会" + technique.name() + "。";
+        if (!player.learnedStyles().contains(technique.style())) throw new IllegalStateException("先习得" + technique.style().name() + "再来求教此招");
+        if (feeInWen < 0) throw new IllegalArgumentException("学费不能为负");
+        if (player.moneyInWen() < feeInWen) throw new IllegalStateException("银钱不足，无法学习招式");
+        player.addMoney(-feeInWen); player.learnTechnique(techniqueId);
+        return "你付出" + feeInWen + "文，学会" + technique.name() + "：" + technique.description();
+    }
+    /** 静坐吐纳半个时辰，恢复内力与少量体力；战斗中不可运功。 */
+    public String meditate() {
+        if (activeCombat != null && activeCombat.status() == com.jianghu.combat.CombatEncounter.Status.ONGOING)
+            throw new IllegalStateException("交手之际无法静坐运功");
+        player.recoverInnerEnergy(25); player.recoverStamina(5); advanceMinutes(30);
+        return "你静坐吐纳半个时辰，内力恢复至" + player.innerEnergy() + "。";
+    }
     public Player player() { return player; }
     public WorldClock clock() { return clock; }
     public List<Npc> npcs() { return npcs; }
