@@ -38,6 +38,8 @@ public final class NpcSocialGraph {
         return java.util.Optional.ofNullable(bonds.get(key(fromNpcId, toNpcId)));
     }
 
+    public java.util.List<Bond> allRelations() { return java.util.List.copyOf(bonds.values()); }
+
     public java.util.List<Bond> relationsOf(String npcId) {
         if (!knownNpcIds.contains(npcId)) throw new IllegalArgumentException("未知 NPC：" + npcId);
         return bonds.values().stream()
