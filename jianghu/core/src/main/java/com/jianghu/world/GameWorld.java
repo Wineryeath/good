@@ -210,7 +210,8 @@ public final class GameWorld {
         Map<String, com.jianghu.business.TradeCaravanSnapshot> caravanSnapshots = new LinkedHashMap<>();
         for (var entry : caravans.entrySet()) caravanSnapshots.put(entry.getKey(), entry.getValue().snapshot());
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
-            weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots,
+            familyRegistry.snapshot(), socialGraph.snapshot(), lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
             independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
@@ -226,6 +227,8 @@ public final class GameWorld {
             life(npc.id()).restoreSnapshot(snapshot.npcLives().get(npc.id()));
             relationship(npc.id()).restoreSnapshot(snapshot.relationships().get(npc.id()));
         }
+        familyRegistry.restoreSnapshot(snapshot.family());
+        socialGraph.restoreSnapshot(snapshot.socialGraph());
         if (!snapshot.markets().keySet().equals(java.util.EnumSet.allOf(MarketRegion.class)))
             throw new IllegalArgumentException("存档区域市场名册不完整");
         for (var entry : snapshot.markets().entrySet()) regionalMarkets.get(entry.getKey()).restoreSnapshot(entry.getValue());
