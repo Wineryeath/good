@@ -28,6 +28,8 @@ public final class JianghuGame extends ApplicationAdapter {
     private boolean inventoryOpen;
     private final CharacterAnimationController playerAnimation = new CharacterAnimationController();
     private int previousPlayerHealth = 100;
+    private final com.jianghu.map.OverworldExplorer overworld = new com.jianghu.map.OverworldExplorer();
+    private boolean overworldMode;
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
@@ -57,9 +59,16 @@ public final class JianghuGame extends ApplicationAdapter {
             if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) dy = 1;
             if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) dy = -1;
             if (dx != 0 || dy != 0) {
-                int nx = world.player().x() + dx;
-                int ny = world.player().y() + dy;
-                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); playerAnimation.walk(dx); world.advanceMinutes(2); }
+                if (overworldMode) {
+                    if (overworld.move(dx, dy)) {
+                        playerAnimation.walk(dx); world.advanceMinutes(3);
+                        overworld.travelThroughGate().ifPresent(message -> interactionMessage = message);
+                    }
+                } else {
+                    int nx = world.player().x() + dx;
+                    int ny = world.player().y() + dy;
+                    if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); playerAnimation.walk(dx); world.advanceMinutes(2); }
+                }
                 moveCooldown = .12f;
             }
         }
@@ -69,6 +78,10 @@ public final class JianghuGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SHIFT_LEFT)) performRealtimeAction(CombatAction.HEAVY_ATTACK);
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) inventoryOpen = !inventoryOpen;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            if (world.activeRealtimeCombat().filter(c -> c.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING).isPresent()) interactionMessage = "交战之中无法打开世界地图。";
+            else { overworldMode = !overworldMode; interactionMessage = overworldMode ? "已打开六域世界地图，沿关隘可前往其他地域。" : "已返回乌篷镇。"; }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) useItem("meal");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) useItem("tea");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) useItem("medicine");
@@ -147,31 +160,56 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) Gdx.app.exit();
 
         Gdx.gl.glClearColor(.08f,.15f,.15f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        float tile = 28, ox = 36, oy = 80;
+        float tile = overworldMode ? 12f : 28f, ox = overworldMode ? 16f : 36f, oy = overworldMode ? 48f : 80f;
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++) {
-            Color terrain = switch (map.tileAt(x,y)) {
-                case WATER -> new Color(.30f,.58f,.62f,1);
-                case WALL -> new Color(.25f,.34f,.29f,1);
-                case BRIDGE -> new Color(.66f,.49f,.30f,1);
-                case PATH -> new Color(.68f,.58f,.40f,1);
-                case BUILDING -> new Color(.48f,.32f,.25f,1);
-                case GRASS -> new Color(.48f,.65f,.43f,1);
-            };
-            shapes.setColor(terrain);
-            shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
+        if (overworldMode) {
+            var region = overworld.region();
+            for (int y = 0; y < region.height(); y++) for (int x = 0; x < region.width(); x++) {
+                Color terrain = switch (region.terrainAt(x, y)) {
+                    case DEEP_WATER -> new Color(.12f,.30f,.48f,1);
+                    case SHALLOW_WATER -> new Color(.25f,.52f,.65f,1);
+                    case GRASS -> new Color(.39f,.57f,.34f,1);
+                    case FOREST -> new Color(.20f,.43f,.25f,1);
+                    case DENSE_FOREST -> new Color(.10f,.29f,.18f,1);
+                    case PATH -> new Color(.68f,.58f,.40f,1);
+                    case STONE_PATH -> new Color(.55f,.54f,.50f,1);
+                    case BRIDGE -> new Color(.75f,.48f,.25f,1);
+                    case HILL -> new Color(.48f,.47f,.32f,1);
+                    case MOUNTAIN, CLIFF -> new Color(.34f,.34f,.36f,1);
+                    case CAVE_FLOOR -> new Color(.27f,.23f,.20f,1);
+                    case TOWN_GROUND -> new Color(.66f,.57f,.42f,1);
+                    case BUILDING -> new Color(.46f,.28f,.22f,1);
+                    case TEMPLE_GROUND -> new Color(.70f,.61f,.48f,1);
+                    case TEMPLE_BUILDING -> new Color(.50f,.35f,.25f,1);
+                };
+                shapes.setColor(terrain); shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
+            }
+            shapes.setColor(Color.GOLD);
+            for (var gate : overworld.gates()) shapes.rect(ox+gate.x()*tile+3, oy+gate.y()*tile+3, tile-6, tile-6);
+            PixelCharacterRenderer.draw(shapes, ox+overworld.x()*tile+tile/2, oy+overworld.y()*tile+tile/2-3, .65f, playerAnimation);
+        } else {
+            for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++) {
+                Color terrain = switch (map.tileAt(x,y)) {
+                    case WATER -> new Color(.30f,.58f,.62f,1);
+                    case WALL -> new Color(.25f,.34f,.29f,1);
+                    case BRIDGE -> new Color(.66f,.49f,.30f,1);
+                    case PATH -> new Color(.68f,.58f,.40f,1);
+                    case BUILDING -> new Color(.48f,.32f,.25f,1);
+                    case GRASS -> new Color(.48f,.65f,.43f,1);
+                };
+                shapes.setColor(terrain); shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
+            }
+            shapes.setColor(new Color(.55f,.38f,.24f,1)); shapes.rect(ox+6*tile,oy+2*tile,4*tile,3*tile);
+            shapes.rect(ox+3*tile,oy+8*tile,3*tile,3*tile);
+            shapes.setColor(new Color(.78f,.30f,.20f,1));
+            for (GameWorld.NpcPosition npc : world.npcPositions(map))
+                shapes.circle(ox+npc.x()*tile+tile/2,oy+npc.y()*tile+tile/2,8);
+            PixelCharacterRenderer.draw(shapes, ox+world.player().x()*tile+tile/2, oy+world.player().y()*tile+tile/2-8, 1.15f, playerAnimation);
         }
-        shapes.setColor(new Color(.55f,.38f,.24f,1)); shapes.rect(ox+6*tile,oy+2*tile,4*tile,3*tile);
-        shapes.rect(ox+3*tile,oy+8*tile,3*tile,3*tile);
-        shapes.setColor(new Color(.78f,.30f,.20f,1));
-        for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
-            shapes.circle(ox+npc.x()*tile+tile/2,oy+npc.y()*tile+tile/2,8);
-        }
-        PixelCharacterRenderer.draw(shapes, ox+world.player().x()*tile+tile/2, oy+world.player().y()*tile+tile/2-8, 1.15f, playerAnimation);
         shapes.end();
 
         batch.begin(); font.setColor(Color.WHITE);
-        font.draw(batch,"一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
+        font.draw(batch,overworldMode ? "一人一江湖  |  世界地图 · "+com.jianghu.map.OverworldExplorer.regionName(overworld.regionId()) : "一人一江湖  |  江南水乡 · 乌篷镇",36,Gdx.graphics.getHeight()-24);
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"需求：饥饿 "+world.player().hunger()+" 口渴 "+world.player().thirst()+"  心情 "+world.player().morale(),36,78);
@@ -193,7 +231,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9武学绝招 V格挡 空格闪避 Z撤退 C遇敌 I背包 ESC退出",36,16);
+        font.draw(batch,overworldMode ? "世界地图：WASD行走 O返回城镇 金色方块为区域关隘" : "WASD移动 E交谈 F地点 M拜师 N学招 L练功 H吐纳 X轻击 Shift重击 7/8/9绝招 V格挡 空格闪避 Z撤退 C遇敌 O世界地图 I背包 ESC退出",36,16);
         if (world.activeRealtimeCombat().isPresent()) {
             var fight = world.activeRealtimeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.90f);
@@ -217,12 +255,13 @@ public final class JianghuGame extends ApplicationAdapter {
             if(fight.status()==com.jianghu.combat.CombatEncounter.Status.ONGOING) font.draw(batch,"X 出招攻击    Z 脱身撤退",Gdx.graphics.getWidth()/2f-190,Gdx.graphics.getHeight()/2f-82);
         }
         font.draw(batch, interactionMessage, 500, 58);
-        for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
-            font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
+        if (!overworldMode) {
+            for (GameWorld.NpcPosition npc : world.npcPositions(map)) font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
+            world.nearbyMartialMaster(map).ifPresent(master -> font.draw(batch,master.name()+" · "+master.title(),ox+6*tile-28,oy+14*tile));
+            map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point -> font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
+        } else {
+            overworld.gateAtPlayer().ifPresent(gate -> font.draw(batch,"关隘："+gate.name()+"（继续前进即可通行）",500,36));
         }
-        world.nearbyMartialMaster(map).ifPresent(master -> font.draw(batch,master.name()+" · "+master.title(),ox+6*tile-28,oy+14*tile));
-        map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point ->
-            font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         batch.end();
     }
     private void useTechnique(String id) {
