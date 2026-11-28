@@ -40,6 +40,8 @@ class TradeCaravanTest {
         assertEquals(2, caravan.lostCargoQuantity());
         assertEquals(6, caravan.cargo().get(TradeGood.TEA).quantity());
         assertTrue(caravan.lastEvent().contains("被劫走"));
+        assertEquals(25, caravan.crewWounds().get("leader"));
+        assertTrue(caravan.woundedCrew().contains("leader"));
     }
     @Test void strongEscortProtectsCargoFromTheSameAmbush() {
         TradeCaravan caravan = new TradeCaravan("raid", "leader", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
@@ -51,6 +53,7 @@ class TradeCaravanTest {
         assertEquals(0, caravan.lostCargoQuantity());
         assertEquals(8, caravan.cargo().get(TradeGood.TEA).quantity());
         assertTrue(caravan.lastEvent().contains("劫匪未能靠近"));
+        assertTrue(caravan.crewWounds().isEmpty());
     }
 
 }
