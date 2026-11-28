@@ -146,6 +146,11 @@ public final class GameWorld {
         return Optional.ofNullable(independentHouseholds.get(npcId));
     }
 
+    public String npcLocationAt(String npcId, int hour) {
+        if (hour < 0 || hour > 23) throw new IllegalArgumentException("时辰无效");
+        return locationFor(requireNpc(npcId), hour);
+    }
+
     private String locationFor(Npc npc, int hour) {
         String scheduled = npc.locationAt(hour);
         if ("home".equals(scheduled)) return independentHouseholds.getOrDefault(npc.id(), scheduled);
