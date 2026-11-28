@@ -28,7 +28,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private boolean inventoryOpen;
     private final CharacterAnimationController playerAnimation = new CharacterAnimationController();
     private int previousPlayerHealth = 100;
-    private final com.jianghu.map.OverworldExplorer overworld = new com.jianghu.map.OverworldExplorer();
+    private com.jianghu.map.OverworldExplorer overworld;
     private boolean overworldMode;
     private final com.jianghu.save.GameWorldSaveService saveService = new com.jianghu.save.GameWorldSaveService();
 
@@ -44,6 +44,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 new Npc.Schedule(16,19,"east-bank",0), new Npc.Schedule(19,5,"home",0)), 5)
         ));
         world.offerQuest(new com.jianghu.quest.Quest("herb-delivery", java.util.Map.of("herb", 3)), 180);
+        overworld = world.overworld();
     }
 
     @Override public void render() {
