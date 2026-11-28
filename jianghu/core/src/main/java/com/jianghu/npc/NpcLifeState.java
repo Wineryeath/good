@@ -18,6 +18,8 @@ public final class NpcLifeState {
     private int health = 100;
     private boolean alive = true;
     private boolean estateTransferred;
+    private String illness;
+    private int illnessSeverity;
     private final ArrayDeque<String> memories = new ArrayDeque<>();
 
     public int hunger() { return hunger; }
@@ -36,6 +38,12 @@ public final class NpcLifeState {
     }
     /** 推进一个游戏日；每 360 天增长一岁。 */
     public boolean passDay() {
+        if (illness != null) {
+            health = clamp(health - illnessSeverity * 2);
+            if (health == 0) alive = false;
+        } else {
+            health = clamp(health + 1);
+        }
         daysLivedThisYear++;
         if (daysLivedThisYear < DAYS_PER_YEAR) return false;
         daysLivedThisYear = 0;
@@ -47,6 +55,26 @@ public final class NpcLifeState {
     public long moneyInWen() { return moneyInWen; }
     public int health() { return health; }
     public boolean alive() { return alive; }
+    public boolean sick() { return illness != null; }
+    public String illness() { return illness; }
+    public int illnessSeverity() { return illnessSeverity; }
+    public void contractIllness(String name, int severity) {
+        if (!alive) throw new IllegalStateException("已故 NPC 不会患病");
+        if (name == null || name.isBlank() || severity < 1 || severity > 3)
+            throw new IllegalArgumentException("疾病名称或严重程度无效");
+        illness = name;
+        illnessSeverity = Math.max(illnessSeverity, severity);
+    }
+    /** 治疗会降低病情并恢复健康；severityReduction 至少为 1。 */
+    public void treatIllness(int severityReduction, int healthRestored) {
+        if (!alive) throw new IllegalStateException("无法治疗已故 NPC");
+        if (illness == null) throw new IllegalStateException("NPC 当前没有患病");
+        if (severityReduction < 1 || healthRestored < 0)
+            throw new IllegalArgumentException("治疗参数无效");
+        illnessSeverity = Math.max(0, illnessSeverity - severityReduction);
+        health = clamp(health + healthRestored);
+        if (illnessSeverity == 0) illness = null;
+    }
     public void changeHealth(int amount) {
         if (!alive) throw new IllegalStateException("已故 NPC 无法改变健康");
         health = clamp(health + amount);
