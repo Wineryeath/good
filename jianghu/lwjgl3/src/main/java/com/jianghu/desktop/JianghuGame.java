@@ -35,6 +35,7 @@ public final class JianghuGame extends ApplicationAdapter {
                 new Npc.Schedule(5,10,"east-bank",0), new Npc.Schedule(10,16,"river-hut",0),
                 new Npc.Schedule(16,19,"east-bank",0), new Npc.Schedule(19,5,"home",0)), 5)
         ));
+        world.offerQuest(new com.jianghu.quest.Quest("herb-delivery", java.util.Map.of("herb", 3)), 180);
     }
 
     @Override public void render() {
@@ -54,6 +55,23 @@ public final class JianghuGame extends ApplicationAdapter {
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) world.waitMinutes(30);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+            try { interactionMessage = "购入草药 " + world.buyFromMarket(map, com.jianghu.business.TradeGood.HERB, 1) + " 文。"; }
+            catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
+            try { interactionMessage = "售出草药，收入 " + world.sellToMarket(map, com.jianghu.business.TradeGood.HERB,
+                world.player().inventory().getOrDefault("herb", 0)) + " 文。"; }
+            catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
+            var quest = world.quest("herb-delivery").orElseThrow();
+            try {
+                if (quest.status() == com.jianghu.quest.Quest.Status.LOCKED) { world.acceptQuest("herb-delivery"); interactionMessage = "接取委托：采集三份草药交给镇中药铺。"; }
+                else if (quest.status() == com.jianghu.quest.Quest.Status.READY_TO_TURN_IN) { long reward = world.turnInQuest("herb-delivery"); interactionMessage = "委托完成，获得 " + reward + " 文与 1 点声望。"; }
+                else interactionMessage = "采药委托进度：" + quest.progress().get("herb") + "/3";
+            } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
             world.interactWithNearbyPoint(map).ifPresentOrElse(
                 line -> interactionMessage = line,
@@ -95,7 +113,7 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"第 "+world.clock().day()+" 日  "+world.clock().traditionalHour()+"（"+world.clock().phase()+"）  天气："+world.weather(),36,Gdx.graphics.getHeight()-52);
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+" 份",36,36);
-        font.draw(batch,"WASD / 方向键移动   E：交谈   F：地点交互   空格：等待   ESC：退出",36,16);
+        font.draw(batch,"WASD / 方向键移动  E：交谈  F：地点  B：买草药  V：卖草药  J：采药委托  空格：等待  ESC：退出",36,16);
         font.draw(batch, interactionMessage, 500, 58);
         for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
             font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
