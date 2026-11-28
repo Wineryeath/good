@@ -2,6 +2,8 @@ package com.jianghu.npc;
 
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /** NPC 的持续生活状态：需求、心情、生计与近期记忆。 */
 public final class NpcLifeState {
@@ -16,6 +18,7 @@ public final class NpcLifeState {
     private int mood = 60;
     private int education;
     private String profession;
+    private final Map<String, Integer> vocationalTraining = new LinkedHashMap<>();
     private long moneyInWen = 500;
     private int health = 100;
     private boolean alive = true;
@@ -57,6 +60,14 @@ public final class NpcLifeState {
     public int mood() { return mood; }
     public int education() { return education; }
     public java.util.Optional<String> profession() { return java.util.Optional.ofNullable(profession); }
+    public int vocationalTraining(String professionName) { return vocationalTraining.getOrDefault(professionName, 0); }
+    public Map<String, Integer> vocationalTraining() { return Map.copyOf(vocationalTraining); }
+    public void trainProfession(String professionName, int points) {
+        if (!alive) throw new IllegalStateException("已故 NPC 无法学习技艺");
+        if (professionName == null || professionName.isBlank() || points < 1)
+            throw new IllegalArgumentException("技艺名称或训练值无效");
+        vocationalTraining.merge(professionName, points, (oldValue, added) -> Math.min(100, oldValue + added));
+    }
     public void chooseProfession(String value) {
         if (!alive) throw new IllegalStateException("已故 NPC 无法选择职业");
         if (value == null || value.isBlank()) throw new IllegalArgumentException("职业名称不能为空");
