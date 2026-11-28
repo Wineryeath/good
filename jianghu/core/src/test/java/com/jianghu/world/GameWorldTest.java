@@ -329,4 +329,29 @@ class GameWorldTest {
     }
 
 
+    @Test void adultNpcCanChooseProfessionAccordingToEducationAndEarnItsWage() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(new Npc.Schedule(6,19,"market",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,7*60),List.of(parent,child));
+        world.life("child").initializeAge(18);
+        world.addNpcChild("parent","child");
+        world.life("child").study(30);
+        long before = world.life("child").moneyInWen();
+        world.chooseNpcProfession("child","药师");
+        assertEquals("药师",world.life("child").profession().orElseThrow());
+        world.advanceMinutes(60);
+        assertEquals(before + 20,world.life("child").moneyInWen());
+        assertTrue(world.life("child").memories().stream().anyMatch(m -> m.contains("选择职业")));
+    }
+
+    @Test void professionChoiceRequiresAdulthoodAndSufficientEducation() {
+        Npc young = new Npc("young","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,8*60),List.of(young));
+        world.life("young").initializeAge(17);
+        assertThrows(IllegalStateException.class,() -> world.chooseNpcProfession("young","农夫"));
+        world.life("young").passDay();
+        assertThrows(IllegalStateException.class,() -> world.chooseNpcProfession("young","教书先生"));
+    }
+
+
 }
