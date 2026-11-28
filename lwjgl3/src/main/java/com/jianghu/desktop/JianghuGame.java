@@ -64,9 +64,16 @@ public final class JianghuGame extends ApplicationAdapter {
         Gdx.gl.glClearColor(.08f,.15f,.15f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         float tile = 28, ox = 36, oy = 80;
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int y=0;y<17;y++) for(int x=0;x<25;x++) {
-            boolean water = x >= 14 && y >= 2 && y <= 12;
-            shapes.setColor(water ? new Color(.30f,.58f,.62f,1) : new Color(.48f,.65f,.43f,1));
+        for (int y=0;y<map.height();y++) for(int x=0;x<map.width();x++) {
+            Color terrain = switch (map.tileAt(x,y)) {
+                case WATER -> new Color(.30f,.58f,.62f,1);
+                case WALL -> new Color(.25f,.34f,.29f,1);
+                case BRIDGE -> new Color(.66f,.49f,.30f,1);
+                case PATH -> new Color(.68f,.58f,.40f,1);
+                case BUILDING -> new Color(.48f,.32f,.25f,1);
+                case GRASS -> new Color(.48f,.65f,.43f,1);
+            };
+            shapes.setColor(terrain);
             shapes.rect(ox+x*tile, oy+y*tile, tile-1, tile-1);
         }
         shapes.setColor(new Color(.55f,.38f,.24f,1)); shapes.rect(ox+6*tile,oy+2*tile,4*tile,3*tile);
