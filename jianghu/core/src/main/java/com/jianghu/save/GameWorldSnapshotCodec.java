@@ -11,6 +11,10 @@ import com.jianghu.quest.Quest;
 import com.jianghu.quest.QuestSnapshot;
 import com.jianghu.business.TradeCaravan;
 import com.jianghu.business.TradeCaravanSnapshot;
+import com.jianghu.npc.NpcFamilySnapshot;
+import com.jianghu.npc.NpcFamilyRegistry;
+import com.jianghu.social.NpcSocialGraphSnapshot;
+import com.jianghu.social.NpcSocialGraph;
 import com.jianghu.social.NpcRelationshipSnapshot;
 import com.jianghu.world.GameWorldSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -77,6 +81,14 @@ public final class GameWorldSnapshotCodec {
             putIntMap(out,p+"objectives",q.objectives()); putIntMap(out,p+"progress",q.progress());
         }
         putLongMap(out,"world.questRewards",s.questRewards());
+        putStringMap(out,"world.family.spouses",s.family().spouses());
+        put(out,"world.family.parents.count",s.family().parents().size()); int fi=0;
+        for(var entry:s.family().parents().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()){String p="world.family.parents."+fi++ +".";out.put(p+"child",b64(entry.getKey()));putSet(out,p+"parents",entry.getValue());}
+        put(out,"world.family.events.count",s.family().events().size()); int fe=0;
+        for(var event:s.family().events()){String p="world.family.events."+fe++ +".";put(out,p+"type",event.type().name());put(out,p+"day",event.worldDay());out.put(p+"description",b64(event.description()));putSet(out,p+"participants",new LinkedHashSet<>(event.participants()));}
+        put(out,"world.social.bonds.count",s.socialGraph().bonds().size()); int sb=0;
+        for(var bond:s.socialGraph().bonds()){String p="world.social.bonds."+sb++ +".";out.put(p+"from",b64(bond.fromNpcId()));out.put(p+"to",b64(bond.toNpcId()));put(out,p+"type",bond.type().name());put(out,p+"strength",bond.strength());}
+
         put(out,"world.caravan.count",s.caravans().size()); int ci=0;
         for(var entry:s.caravans().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()){
             String p="world.caravan."+ci++ +"."; TradeCaravanSnapshot c=entry.getValue();
@@ -145,8 +157,17 @@ public final class GameWorldSnapshotCodec {
                 crew,strength,wounds,cargo,TradeCaravan.State.valueOf(req(data,p+"state")),num(data,p+"remaining"),num(data,p+"elapsed"),num(data,p+"delay"),
                 bool(data,p+"weatherEvent"),bool(data,p+"ambushEvent"),num(data,p+"lostCargo"),unb64(req(data,p+"lastEvent"))));
         }
+        Map<String,String> spouses=readStringMap(data,"world.family.spouses"); Map<String,Set<String>> parents=new LinkedHashMap<>();
+        for(int i=0;i<count(data,"world.family.parents.count");i++){String p="world.family.parents."+i+".";parents.put(unb64(req(data,p+"child")),readSet(data,p+"parents"));}
+        List<NpcFamilyRegistry.FamilyEvent> familyEvents=new ArrayList<>();
+        for(int i=0;i<count(data,"world.family.events.count");i++){String p="world.family.events."+i+".";familyEvents.add(new NpcFamilyRegistry.FamilyEvent(
+            NpcFamilyRegistry.EventType.valueOf(req(data,p+"type")),new ArrayList<>(readSet(data,p+"participants")),longNum(data,p+"day"),unb64(req(data,p+"description"))));}
+        List<NpcSocialGraph.Bond> bonds=new ArrayList<>();
+        for(int i=0;i<count(data,"world.social.bonds.count");i++){String p="world.social.bonds."+i+".";bonds.add(new NpcSocialGraph.Bond(
+            unb64(req(data,p+"from")),unb64(req(data,p+"to")),NpcSocialGraph.RelationType.valueOf(req(data,p+"type")),num(data,p+"strength")));}
+        NpcFamilySnapshot family=new NpcFamilySnapshot(spouses,parents,familyEvents); NpcSocialGraphSnapshot social=new NpcSocialGraphSnapshot(bonds);
         return new GameWorldSnapshot(player, longNum(data,"world.day"), num(data,"world.minute"), unb64(req(data,"world.weather")),
-            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), caravans, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
+            lives, relations, businesses, markets, quests, readLongMap(data,"world.questRewards"), caravans, family, social, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"));
     }
