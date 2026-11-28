@@ -24,6 +24,7 @@ public final class GameWorld {
     private final Map<String, NpcRelationship> relationships = new LinkedHashMap<>();
     private final Map<String, NpcLifeState> npcLives = new LinkedHashMap<>();
     private final NpcSocialGraph socialGraph;
+    private final Map<String, Long> lastSocialDay = new LinkedHashMap<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
         this.socialGraph = new NpcSocialGraph(this.npcs.stream().map(Npc::id).collect(Collectors.toSet()));
@@ -50,6 +51,7 @@ public final class GameWorld {
                 for (Npc npc : npcs) {
                     life(npc.id()).passHour(npc.role(), npc.locationAt(clock.hour()), clock.hour());
                 }
+                settleNpcSocialLife();
             }
         }
     }
@@ -109,6 +111,33 @@ public final class GameWorld {
     private static void requireDescription(String description) {
         if (description == null || description.isBlank())
             throw new IllegalArgumentException("行为描述不能为空");
+    }
+
+    /** 每个游戏日，同处一地的 NPC 会按既有关系发生一次日常互动。 */
+    private void settleNpcSocialLife() {
+        for (NpcSocialGraph.Bond bond : socialGraph.allRelations()) {
+            String pairKey = bond.fromNpcId() + "->" + bond.toNpcId();
+            if (lastSocialDay.getOrDefault(pairKey, 0L) == clock.day()) continue;
+            Npc from = requireNpc(bond.fromNpcId());
+            Npc to = requireNpc(bond.toNpcId());
+            String place = from.locationAt(clock.hour());
+            if (!place.equals(to.locationAt(clock.hour()))) continue;
+            boolean warm = switch (bond.type()) {
+                case FAMILY, FRIEND, MENTOR, DISCIPLE -> true;
+                case RIVAL, ENEMY -> false;
+            };
+            socialGraph.changeStrength(from.id(), to.id(), warm ? 1 : -1);
+            life(from.id()).changeMood(warm ? 2 : -1);
+            life(to.id()).changeMood(warm ? 2 : -1);
+            String event = warm
+                ? "今日在" + place + "与" + to.name() + "相聚"
+                : "今日在" + place + "与" + to.name() + "发生争执";
+            life(from.id()).remember(event);
+            life(to.id()).remember(warm
+                ? "今日在" + place + "与" + from.name() + "相聚"
+                : "今日在" + place + "与" + from.name() + "发生争执");
+            lastSocialDay.put(pairKey, clock.day());
+        }
     }
 
     public Optional<String> talkToNearby(GameMap map) {
