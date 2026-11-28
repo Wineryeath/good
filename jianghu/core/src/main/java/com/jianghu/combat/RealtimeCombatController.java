@@ -18,11 +18,16 @@ public final class RealtimeCombatController {
     public float dodgeInvulnerability() { return dodgeInvulnerability; }
     public Optional<CombatAction> lastAction() { return Optional.ofNullable(lastAction); }
     public ActionResult perform(CombatAction action, int availableStamina) {
+        if (action == null) throw new IllegalArgumentException("战斗动作不能为空");
+        return perform(action, availableStamina, action.staminaCost());
+    }
+    public ActionResult perform(CombatAction action, int availableStamina, int staminaCost) {
+        if (staminaCost < 0) throw new IllegalArgumentException("体力消耗不能为负");
         if (!alive) return new ActionResult(false, "角色已倒下", 0, comboCount);
         if (action == null) throw new IllegalArgumentException("战斗动作不能为空");
         if (cooldown > 0 || phase == Phase.ATTACKING || phase == Phase.DODGING || phase == Phase.RECOVERING)
             return new ActionResult(false, "动作尚未恢复", 0, comboCount);
-        if (availableStamina < action.staminaCost()) return new ActionResult(false, "体力不足", 0, comboCount);
+        if (availableStamina < staminaCost) return new ActionResult(false, "体力不足", 0, comboCount);
         if (lastAction == CombatAction.LIGHT_ATTACK && action == CombatAction.LIGHT_ATTACK && actionTime <= 0.7f) comboCount = Math.min(5, comboCount + 1);
         else if (action == CombatAction.LIGHT_ATTACK) comboCount = 1;
         else if (action != CombatAction.BLOCK) comboCount = 0;
@@ -33,7 +38,7 @@ public final class RealtimeCombatController {
             case BLOCK -> Phase.BLOCKING;
         };
         if (phase == Phase.DODGING) dodgeInvulnerability = 0.42f;
-        return new ActionResult(true, action == CombatAction.DODGE ? "侧身闪避" : action == CombatAction.BLOCK ? "架势格挡" : "招式发动", action.staminaCost(), comboCount);
+        return new ActionResult(true, action == CombatAction.DODGE ? "侧身闪避" : action == CombatAction.BLOCK ? "架势格挡" : "招式发动", staminaCost, comboCount);
     }
     public void update(float deltaSeconds) {
         if (deltaSeconds < 0) throw new IllegalArgumentException("战斗时间不能倒退");
