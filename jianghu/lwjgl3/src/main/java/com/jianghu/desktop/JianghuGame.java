@@ -64,6 +64,20 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) equipItem("iron_sword");
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) equipItem("leather_armor");
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            try { interactionMessage = world.meditate(); }
+            catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            try { interactionMessage = world.learnFromMartialMaster(map); }
+            catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+            try { interactionMessage = world.learnTechniqueFromMartialMaster(map); }
+            catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) useTechnique("basic_palm");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueForCurrentStyle();
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) combatAction(false);
         if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) combatAction(true);
         if (Gdx.input.isKeyJustPressed(Input.Keys.T)) craft("medicine");
@@ -136,7 +150,7 @@ public final class JianghuGame extends ApplicationAdapter {
         font.draw(batch,"旅人："+world.player().name()+"   健康："+world.player().health()+"   体力："+world.player().stamina()+"   银钱："+(world.player().moneyInWen()/100)+" 两 "+(world.player().moneyInWen()%100)+" 文",36,58);
         font.draw(batch,"需求：饥饿 "+world.player().hunger()+" 口渴 "+world.player().thirst()+"  心情 "+world.player().morale(),36,78);
         font.draw(batch,"装备：攻击 "+world.player().attackPower()+" 防御 "+world.player().defensePower()+"  武器 "+world.player().equipment().getOrDefault(com.jianghu.item.EquipmentItem.Slot.WEAPON, "无")+"  护甲 "+world.player().equipment().getOrDefault(com.jianghu.item.EquipmentItem.Slot.ARMOR, "无"),36,98);
-        font.draw(batch,"武学：第 "+world.player().martialLevel()+" 重  经验 "+world.player().martialExperience()+"  基础劲力 "+world.player().martialPower(),36,118);
+        font.draw(batch,"武学："+world.player().martialStyle().displayName()+"  内力 "+world.player().innerEnergy()+"  境界 "+world.player().martialLevel()+" 重  经验 "+world.player().martialExperience(),36,118);
         font.draw(batch,"背包：草药 "+world.player().inventory().getOrDefault("herb",0)+"  熟食 "+world.player().inventory().getOrDefault("meal",0)+"  清茶 "+world.player().inventory().getOrDefault("tea",0)+"  药 "+world.player().inventory().getOrDefault("medicine",0),36,36);
         if (inventoryOpen) {
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.04f,0.06f,0.07f,0.92f);
@@ -153,7 +167,7 @@ public final class JianghuGame extends ApplicationAdapter {
             }
             font.draw(batch,"1 熟食  2 清茶  3 金疮药  4 草药（草药不可直接使用）",Gdx.graphics.getWidth()-310,Gdx.graphics.getHeight()-275);
         }
-        font.draw(batch,"WASD / 方向键移动  E：交谈  F：地点  B：买草药  V：卖草药  J：采药委托  K：附近打工  G：赠送草药  I：背包  1-4：使用物品  空格：等待  ESC：退出",36,16);
+        font.draw(batch,"WASD移动 E交谈 F地点 M拜师 N学招 H吐纳 7基础掌法 8施展流派招式 X攻击 Z撤退 C遇敌 I背包 空格等待 ESC退出",36,16);
         if (world.activeCombat().isPresent()) {
             var fight = world.activeCombat().orElseThrow();
             shapes.begin(ShapeRenderer.ShapeType.Filled); shapes.setColor(0.03f,0.02f,0.02f,0.88f);
@@ -169,9 +183,23 @@ public final class JianghuGame extends ApplicationAdapter {
         for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
             font.draw(batch,npc.name(),ox+npc.x()*tile-8,oy+npc.y()*tile+tile+8);
         }
+        world.nearbyMartialMaster(map).ifPresent(master -> font.draw(batch,master.name()+" · "+master.title(),ox+6*tile-28,oy+14*tile));
         map.nearestInteractable(world.player().x(),world.player().y()).ifPresent(point ->
             font.draw(batch,"附近："+point.name()+"（按 F 交互）",500,36));
         batch.end();
+    }
+    private void useTechnique(String id) {
+        try {
+            var fight = world.activeCombat().orElseThrow(() -> new IllegalStateException("当前没有进行中的战斗"));
+            interactionMessage = fight.useTechnique(id);
+        } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
+    }
+    private void useTechniqueForCurrentStyle() {
+        String id = switch (world.player().martialStyle()) {
+            case FIST -> "iron_palm"; case SWORD -> "cloud_sword"; case SABER -> "wind_saber";
+            case SPEAR -> "piercing_spear"; case STAFF -> "sweeping_staff";
+        };
+        useTechnique(id);
     }
     private void startCombat() {
         try { world.startBanditEncounter(); interactionMessage = "山道劫匪出现！按 X 出招，按 Z 撤退。"; }
