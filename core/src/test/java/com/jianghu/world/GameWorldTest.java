@@ -29,4 +29,16 @@ class GameWorldTest {
         GameWorld world = new GameWorld(player,new WorldClock(1,7*60),List.of(fisherman));
         assertEquals("fisher",world.nearbyNpc(GameMap.starterTown()).orElseThrow().npcId());
     }
+    @Test void talkingBuildsNpcRelationship() {
+        Npc teaOwner = new Npc("tea-owner","沈掌柜","茶摊老板",List.of(
+            new Npc.Schedule(6,20,"tea-stall",0)),0);
+        Player player = new Player("旅人");
+        player.moveTo(10,5);
+        GameWorld world = new GameWorld(player,new WorldClock(1,8*60),List.of(teaOwner));
+        String first = world.talkToNearby(GameMap.starterTown()).orElseThrow();
+        assertTrue(first.contains("沈掌柜"));
+        assertEquals(1,world.relationship("tea-owner").conversations());
+        assertEquals(2,world.relationship("tea-owner").favor());
+    }
+
 }
