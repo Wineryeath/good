@@ -204,7 +204,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) Gdx.app.exit();
 
         Gdx.gl.glClearColor(.08f,.15f,.15f,1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        float tile = overworldMode ? 12f : 28f, ox = overworldMode ? 16f : 36f, oy = overworldMode ? 48f : 80f;
+        float tile = overworldMode && !world.insideMartialSchool() ? 12f : 28f, ox = overworldMode && !world.insideMartialSchool() ? 16f : 36f, oy = overworldMode && !world.insideMartialSchool() ? 48f : 80f;
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         if (world.insideMartialSchool()) {
             var interior = world.activeMartialSchoolInterior().orElseThrow();
