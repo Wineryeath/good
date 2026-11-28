@@ -20,6 +20,11 @@ public final class RegionalMarket {
     public int stockOf(TradeGood good) { requireGood(good); return stock.get(good); }
     public int demandOf(TradeGood good) { requireGood(good); return demand.get(good); }
     public Map<TradeGood, Integer> stock() { return Map.copyOf(stock); }
+    public Map<TradeGood, Integer> demand() { return Map.copyOf(demand); }
+    public void restoreSnapshot(RegionalMarketSnapshot snapshot) {
+        if (snapshot == null || region != snapshot.region()) throw new IllegalArgumentException("市场存档区域不匹配");
+        stock.clear(); stock.putAll(snapshot.stock()); demand.clear(); demand.putAll(snapshot.demand());
+    }
     public long quote(TradeGood good, long worldDay, String weather) {
         requireGood(good);
         long base = new MarketPriceBook().priceOf(good, worldDay, weather);
