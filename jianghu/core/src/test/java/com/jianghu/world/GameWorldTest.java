@@ -131,4 +131,20 @@ class GameWorldTest {
         assertThrows(IllegalStateException.class, () -> world.marryNpcs("a","c"));
     }
 
+    @Test void familyConflictCanBeReconciledAndIsRecorded() {
+        Npc parent = new Npc("parent","阿兰","居民",List.of(),0);
+        Npc child = new Npc("child","小禾","居民",List.of(),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(4,9*60),List.of(parent,child));
+        world.addNpcChild("parent","child");
+        world.familyConflict("parent","child","因家中生计意见不合");
+        assertEquals(com.jianghu.social.NpcSocialGraph.RelationType.ENEMY,
+            world.socialGraph().relation("parent","child").orElseThrow().type());
+        assertEquals(NpcFamilyRegistry.EventType.CONFLICT,world.familyRegistry().events().get(1).type());
+        world.reconcileFamily("parent","child","坦诚交谈后互相谅解");
+        assertEquals(com.jianghu.social.NpcSocialGraph.RelationType.FAMILY,
+            world.socialGraph().relation("child","parent").orElseThrow().type());
+        assertEquals(NpcFamilyRegistry.EventType.RECONCILIATION,world.familyRegistry().events().get(2).type());
+        assertEquals(4,world.familyRegistry().events().get(0).worldDay());
+    }
+
 }
