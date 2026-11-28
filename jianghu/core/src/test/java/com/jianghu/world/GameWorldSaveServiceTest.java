@@ -57,7 +57,7 @@ class GameWorldSaveServiceTest {
         assertEquals(original.relationship("npc-inn").favor(), restored.relationship("npc-inn").favor());
         assertEquals(original.relationship("npc-inn").trust(), restored.relationship("npc-inn").trust());
         assertEquals(original.familyRegistry().spouseOf("npc-inn"), restored.familyRegistry().spouseOf("npc-inn"));
-        assertEquals(original.familyRegistry().parentsOf("npc-child"), restored.familyRegistry().parentsOf("npc-child"));
+        assertEquals(new java.util.HashSet<>(original.familyRegistry().parentsOf("npc-child")), new java.util.HashSet<>(restored.familyRegistry().parentsOf("npc-child")));
         assertEquals(original.socialGraph().relation("npc-worker", "npc-child"), restored.socialGraph().relation("npc-worker", "npc-child"));
         var restoredInn = restored.npcBusiness("family-inn").orElseThrow();
         assertEquals(inn.treasuryInWen(), restoredInn.treasuryInWen());
