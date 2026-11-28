@@ -201,8 +201,12 @@ public final class GameWorld {
             lives.put(npc.id(), com.jianghu.npc.NpcLifeSnapshot.capture(life(npc.id())));
             bonds.put(npc.id(), com.jianghu.social.NpcRelationshipSnapshot.capture(relationship(npc.id())));
         }
+        Map<String, com.jianghu.business.NpcBusinessSnapshot> businessSnapshots = new LinkedHashMap<>();
+        for (NpcBusiness business : businesses.values()) businessSnapshots.put(business.id(), com.jianghu.business.NpcBusinessSnapshot.capture(business));
+        Map<MarketRegion, com.jianghu.business.RegionalMarketSnapshot> marketSnapshots = new EnumMap<>(MarketRegion.class);
+        for (var entry : regionalMarkets.entrySet()) marketSnapshots.put(entry.getKey(), com.jianghu.business.RegionalMarketSnapshot.capture(entry.getValue()));
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
-            weather, lives, bonds, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            weather, lives, bonds, businessSnapshots, marketSnapshots, lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
             independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
@@ -217,6 +221,16 @@ public final class GameWorld {
         for (Npc npc : npcs) {
             life(npc.id()).restoreSnapshot(snapshot.npcLives().get(npc.id()));
             relationship(npc.id()).restoreSnapshot(snapshot.relationships().get(npc.id()));
+        }
+        if (!snapshot.markets().keySet().equals(java.util.EnumSet.allOf(MarketRegion.class)))
+            throw new IllegalArgumentException("存档区域市场名册不完整");
+        for (var entry : snapshot.markets().entrySet()) regionalMarkets.get(entry.getKey()).restoreSnapshot(entry.getValue());
+        businesses.clear();
+        for (var entry : snapshot.businesses().entrySet()) {
+            var b = entry.getValue();
+            NpcBusiness restored = new NpcBusiness(b.id(), b.name(), b.type(), b.ownerNpcId(), b.dailyIncomeInWen(),
+                b.dailyOperatingCostInWen(), b.dailyWagePerEmployeeInWen(), b.treasuryInWen());
+            restored.restoreSnapshot(b); businesses.put(entry.getKey(), restored);
         }
         lastAgedDay = snapshot.lastAgedDay(); lastBusinessDay = snapshot.lastBusinessDay();
         deathRecorded.clear(); deathRecorded.addAll(snapshot.deathRecorded());
