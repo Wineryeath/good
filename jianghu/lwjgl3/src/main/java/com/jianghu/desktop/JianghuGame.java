@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.jianghu.character.Player;
+import com.jianghu.combat.CharacterAnimationController;
+import com.jianghu.combat.CombatAction;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.time.WorldClock;
@@ -24,6 +26,7 @@ public final class JianghuGame extends ApplicationAdapter {
     private float moveCooldown;
     private String interactionMessage = "沿着河埠慢慢探索，留意镇中人物的作息。";
     private boolean inventoryOpen;
+    private final CharacterAnimationController playerAnimation = new CharacterAnimationController();
 
     @Override public void create() {
         shapes = new ShapeRenderer(); batch = new SpriteBatch(); font = new BitmapFont();
@@ -41,6 +44,7 @@ public final class JianghuGame extends ApplicationAdapter {
 
     @Override public void render() {
         float delta = Gdx.graphics.getDeltaTime();
+        playerAnimation.update(delta);
         moveCooldown -= delta;
         if (moveCooldown <= 0) {
             int dx = 0, dy = 0;
@@ -51,7 +55,7 @@ public final class JianghuGame extends ApplicationAdapter {
             if (dx != 0 || dy != 0) {
                 int nx = world.player().x() + dx;
                 int ny = world.player().y() + dy;
-                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); world.advanceMinutes(2); }
+                if (map.isWalkable(nx, ny)) { world.player().moveTo(nx, ny); playerAnimation.walk(dx); world.advanceMinutes(2); }
                 moveCooldown = .12f;
             }
         }
@@ -80,7 +84,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) useTechniqueForCurrentStyle();
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechnique("cloud_piercing");
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
-            try { interactionMessage = world.trainWithMartialMaster(map); }
+            try { interactionMessage = world.trainWithMartialMaster(map); playerAnimation.train(); }
             catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) combatAction(false);
@@ -147,7 +151,7 @@ public final class JianghuGame extends ApplicationAdapter {
         for (GameWorld.NpcPosition npc : world.npcPositions(map)) {
             shapes.circle(ox+npc.x()*tile+tile/2,oy+npc.y()*tile+tile/2,8);
         }
-        shapes.setColor(Color.GOLD); shapes.circle(ox+world.player().x()*tile+tile/2,oy+world.player().y()*tile+tile/2,10);
+        PixelCharacterRenderer.draw(shapes, ox+world.player().x()*tile+tile/2, oy+world.player().y()*tile+tile/2-8, 1.15f, playerAnimation);
         shapes.end();
 
         batch.begin(); font.setColor(Color.WHITE);
@@ -212,7 +216,10 @@ public final class JianghuGame extends ApplicationAdapter {
         catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
     }
     private void combatAction(boolean flee) {
-        try { interactionMessage = flee ? world.fleeCombat() : world.combatAttack(); }
+        try {
+            interactionMessage = flee ? world.fleeCombat() : world.combatAttack();
+            if (!flee) playerAnimation.attack();
+        }
         catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
     }
     private void equipItem(String itemId) {
