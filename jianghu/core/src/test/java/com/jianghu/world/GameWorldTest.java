@@ -1,6 +1,7 @@
 package com.jianghu.world;
 
 import com.jianghu.character.Player;
+import com.jianghu.business.BusinessType;
 import com.jianghu.map.GameMap;
 import com.jianghu.npc.Npc;
 import com.jianghu.npc.NpcFamilyRegistry;
@@ -381,6 +382,50 @@ class GameWorldTest {
         world.life("mentor").study(30);
         world.chooseNpcProfession("mentor","药师");
         assertThrows(IllegalArgumentException.class,() -> world.trainNpcApprentice("mentor","apprentice",5));
+    }
+
+    @Test void familyBusinessEarnsDailyRevenueAndCanEmployFamily() {
+        Npc parent = new Npc("parent", "阿兰", "居民", List.of(), 0);
+        Npc child = new Npc("child", "小禾", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(parent, child));
+        world.addNpcChild("parent", "child");
+        var inn = world.foundNpcBusiness("parent", "inn", "听雨客栈", BusinessType.INN, 320, 500);
+        world.hireForNpcBusiness("parent", "inn", "child");
+        assertTrue(inn.employees().contains("child"));
+        world.advanceMinutes(24 * 60);
+        assertEquals(820, inn.treasuryInWen());
+        assertEquals(1, inn.settledDays());
+        assertThrows(IllegalArgumentException.class, () -> world.foundNpcBusiness("child", "inn", "重复客栈", BusinessType.INN, 1, 0));
+    }
+
+    @Test void familyBusinessCanBeInheritedWithItsTreasuryAndStaff() {
+        Npc parent = new Npc("parent", "阿兰", "居民", List.of(), 0);
+        Npc child = new Npc("child", "小禾", "居民", List.of(), 0);
+        Npc worker = new Npc("worker", "阿福", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(3, 8 * 60), List.of(parent, child, worker));
+        world.addNpcChild("parent", "child");
+        world.addNpcChild("parent", "worker");
+        var pharmacy = world.foundNpcBusiness("parent", "pharmacy", "百草药铺", BusinessType.PHARMACY, 200, 900);
+        world.hireForNpcBusiness("parent", "pharmacy", "child");
+        world.hireForNpcBusiness("parent", "pharmacy", "worker");
+        world.recordNpcDeath("parent", "寿终正寝");
+        world.inheritNpcBusiness("pharmacy", "child");
+        assertEquals("child", pharmacy.ownerNpcId());
+        assertEquals(900, pharmacy.treasuryInWen());
+        assertFalse(pharmacy.employees().contains("child"));
+        assertTrue(pharmacy.employees().contains("worker"));
+        assertEquals(NpcFamilyRegistry.EventType.INHERITANCE, world.familyRegistry().events().get(2).type());
+        assertThrows(IllegalStateException.class, () -> world.inheritNpcBusiness("pharmacy", "worker"));
+    }
+
+    @Test void unrelatedNpcCannotBeHiredIntoFamilyBusinessOrInheritIt() {
+        Npc owner = new Npc("owner", "掌柜", "居民", List.of(), 0);
+        Npc stranger = new Npc("stranger", "路人", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner, stranger));
+        world.foundNpcBusiness("owner", "farm", "河畔农庄", BusinessType.FARM, 100, 0);
+        assertThrows(IllegalArgumentException.class, () -> world.hireForNpcBusiness("owner", "farm", "stranger"));
+        world.recordNpcDeath("owner", "病逝");
+        assertThrows(IllegalArgumentException.class, () -> world.inheritNpcBusiness("farm", "stranger"));
     }
 
 }
