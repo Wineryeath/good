@@ -1,2 +1,0 @@
-rootProject.name = 'jianghu'
-include 'core', 'lwjgl3'
