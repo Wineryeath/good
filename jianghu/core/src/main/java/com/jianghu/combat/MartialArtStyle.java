@@ -2,7 +2,7 @@ package com.jianghu.combat;
 
 /** 五类江湖武学路数；招式风格会改变角色的攻防倾向。 */
 public enum MartialArtStyle {
-    FIST("fist", "拳掌", 1, 1, "刚柔并济，近身制敌，攻守均衡。"),
+    FIST("fist", "拳掌", 0, 0, "刚柔并济，近身制敌，攻守均衡。"),
     SWORD("sword", "剑法", 3, 0, "剑走轻灵，出手迅捷，偏重进攻。"),
     SABER("saber", "刀法", 4, -1, "刀势沉猛，以攻代守。"),
     SPEAR("spear", "枪法", 2, 1, "长兵守中带攻，擅长稳扎稳打。"),
