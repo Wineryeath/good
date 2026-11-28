@@ -31,4 +31,26 @@ class TradeCaravanTest {
         assertThrows(IllegalArgumentException.class, () -> caravan.addCrew("leader"));
         assertThrows(IllegalArgumentException.class, () -> caravan.load(TradeGood.HERB, 0, 10));
     }
+    @Test void weakEscortCanLoseCargoDuringAnAmbush() {
+        TradeCaravan caravan = new TradeCaravan("raid", "leader", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
+        caravan.load(TradeGood.TEA, 8, 240);
+        caravan.depart(4);
+        caravan.advanceMinute("晴");
+        caravan.advanceMinute("晴");
+        assertEquals(2, caravan.lostCargoQuantity());
+        assertEquals(6, caravan.cargo().get(TradeGood.TEA).quantity());
+        assertTrue(caravan.lastEvent().contains("被劫走"));
+    }
+    @Test void strongEscortProtectsCargoFromTheSameAmbush() {
+        TradeCaravan caravan = new TradeCaravan("raid", "leader", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
+        caravan.addCrew("guard1", 30); caravan.addCrew("guard2", 30); caravan.addCrew("guard3", 30);
+        caravan.load(TradeGood.TEA, 8, 240);
+        caravan.depart(4);
+        caravan.advanceMinute("晴"); caravan.advanceMinute("晴");
+        assertEquals(95, caravan.escortStrength());
+        assertEquals(0, caravan.lostCargoQuantity());
+        assertEquals(8, caravan.cargo().get(TradeGood.TEA).quantity());
+        assertTrue(caravan.lastEvent().contains("劫匪未能靠近"));
+    }
+
 }
