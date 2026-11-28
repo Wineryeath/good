@@ -1,6 +1,12 @@
 package com.jianghu.save;
 
 import com.jianghu.npc.NpcLifeSnapshot;
+import com.jianghu.business.NpcBusinessSnapshot;
+import com.jianghu.business.NpcBusiness;
+import com.jianghu.business.BusinessType;
+import com.jianghu.business.TradeGood;
+import com.jianghu.business.MarketRegion;
+import com.jianghu.business.RegionalMarketSnapshot;
 import com.jianghu.social.NpcRelationshipSnapshot;
 import com.jianghu.world.GameWorldSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +45,28 @@ public final class GameWorldSnapshotCodec {
             if (r == null) throw new IllegalArgumentException("NPC 关系快照缺失：" + entry.getKey());
             put(out, p + "favor", r.favor()); put(out, p + "trust", r.trust()); put(out, p + "conversations", r.conversations());
         }
+        int bi = 0; put(out, "world.business.count", s.businesses().size());
+        for (var entry : s.businesses().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            String p = "world.business." + bi++ + "."; var b = entry.getValue();
+            out.put(p + "id", b64(b.id())); out.put(p + "name", b64(b.name())); out.put(p + "type", b.type().name()); out.put(p + "owner", b64(b.ownerNpcId()));
+            put(out,p+"dailyIncome",b.dailyIncomeInWen()); put(out,p+"dailyCost",b.dailyOperatingCostInWen()); put(out,p+"dailyWage",b.dailyWagePerEmployeeInWen());
+            put(out,p+"treasury",b.treasuryInWen()); put(out,p+"debt",b.debtInWen()); put(out,p+"retained",b.retainedProfitInWen());
+            put(out,p+"settledDays",b.settledDays()); put(out,p+"level",b.level()); putSet(out,p+"employees",b.employees());
+            put(out,p+"inventory.count",b.inventory().size()); int gi=0;
+            for (var stock : b.inventory().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                put(out,p+"inventory."+gi+".good",stock.getKey().name()); put(out,p+"inventory."+gi+".quantity",stock.getValue());
+                put(out,p+"inventory."+gi+".basis",b.inventoryCostBasis().getOrDefault(stock.getKey(),0L)); gi++;
+            }
+            put(out,p+"hasReport",b.lastReport()!=null);
+            if (b.lastReport()!=null) { var r=b.lastReport(); put(out,p+"report.revenue",r.revenueInWen()); put(out,p+"report.operating",r.operatingCostInWen());
+                put(out,p+"report.payroll",r.payrollInWen()); put(out,p+"report.profit",r.netProfitInWen()); put(out,p+"report.debt",r.debtAfterInWen());
+                put(out,p+"report.treasury",r.treasuryAfterInWen()); put(out,p+"report.level",r.level()); put(out,p+"report.adverse",r.adverseDay()); }
+        }
+        put(out,"world.market.count",s.markets().size()); int mi=0;
+        for (var entry : s.markets().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            String p="world.market."+mi++ +"."; put(out,p+"region",entry.getKey().name());
+            for (TradeGood good : TradeGood.values()) { put(out,p+good.name()+".stock",entry.getValue().stock().get(good)); put(out,p+good.name()+".demand",entry.getValue().demand().get(good)); }
+        }
         putSet(out, "world.deathRecorded", s.deathRecorded()); putLongMap(out, "world.lastSocialDay", s.lastSocialDay());
         putStringMap(out, "world.households", s.independentHouseholds()); putIntMap(out, "world.courtshipDays", s.courtshipDays());
         putLongMap(out, "world.masterTrainingDays", s.masterTrainingDays()); putIntMap(out, "world.masterFavor", s.masterFavor());
@@ -63,8 +91,27 @@ public final class GameWorldSnapshotCodec {
                 bool(data,p+"estateTransferred"), illness, num(data,p+"illnessSeverity"), memories));
             relations.put(id, new NpcRelationshipSnapshot(num(data,p+"favor"), num(data,p+"trust"), num(data,p+"conversations")));
         }
+        Map<String, NpcBusinessSnapshot> businesses = new LinkedHashMap<>();
+        for (int i=0;i<count(data,"world.business.count");i++) {
+            String p="world.business."+i+"."; Map<TradeGood,Integer> stock=new LinkedHashMap<>(); Map<TradeGood,Long> basis=new LinkedHashMap<>();
+            for(int j=0;j<count(data,p+"inventory.count");j++){String q=p+"inventory."+j+".";TradeGood g=TradeGood.valueOf(req(data,q+"good"));stock.put(g,num(data,q+"quantity"));basis.put(g,longNum(data,q+"basis"));}
+            NpcBusiness.DailyReport report=null;
+            if(bool(data,p+"hasReport")) report=new NpcBusiness.DailyReport(longNum(data,p+"report.revenue"),longNum(data,p+"report.operating"),
+                longNum(data,p+"report.payroll"),longNum(data,p+"report.profit"),longNum(data,p+"report.debt"),longNum(data,p+"report.treasury"),
+                num(data,p+"report.level"),bool(data,p+"report.adverse"));
+            String id=unb64(req(data,p+"id"));
+            businesses.put(id,new NpcBusinessSnapshot(id,unb64(req(data,p+"name")),BusinessType.valueOf(req(data,p+"type")),unb64(req(data,p+"owner")),
+                longNum(data,p+"dailyIncome"),longNum(data,p+"dailyCost"),longNum(data,p+"dailyWage"),longNum(data,p+"treasury"),
+                longNum(data,p+"debt"),longNum(data,p+"retained"),longNum(data,p+"settledDays"),num(data,p+"level"),
+                readSet(data,p+"employees"),stock,basis,report));
+        }
+        Map<MarketRegion,RegionalMarketSnapshot> markets=new LinkedHashMap<>();
+        for(int i=0;i<count(data,"world.market.count");i++){String p="world.market."+i+".";MarketRegion region=MarketRegion.valueOf(req(data,p+"region"));
+            Map<TradeGood,Integer> stock=new LinkedHashMap<>(),demand=new LinkedHashMap<>();
+            for(TradeGood good:TradeGood.values()){stock.put(good,num(data,p+good.name()+".stock"));demand.put(good,num(data,p+good.name()+".demand"));}
+            markets.put(region,new RegionalMarketSnapshot(region,stock,demand));}
         return new GameWorldSnapshot(player, longNum(data,"world.day"), num(data,"world.minute"), unb64(req(data,"world.weather")),
-            lives, relations, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
+            lives, relations, businesses, markets, longNum(data,"world.lastAgedDay"), longNum(data,"world.lastBusinessDay"),
             readSet(data,"world.deathRecorded"), readLongMap(data,"world.lastSocialDay"), readStringMap(data,"world.households"),
             readIntMap(data,"world.courtshipDays"), readLongMap(data,"world.masterTrainingDays"), readIntMap(data,"world.masterFavor"));
     }
