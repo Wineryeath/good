@@ -104,22 +104,29 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) startCombat();
         if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
             try {
-                if (overworldMode) {
+                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                else if (overworldMode) {
                     var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派静室"));
                     interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-meditation");
                 } else interactionMessage = world.meditate();
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && overworldMode) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && (overworldMode || world.insideMartialSchool())) {
             try {
-                var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派藏经阁"));
-                interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-scripture");
+                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                else {
+                    var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派藏经阁"));
+                    interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-scripture");
+                }
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && overworldMode) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && (overworldMode || world.insideMartialSchool())) {
             try {
-                var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派医馆"));
-                interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-infirmary");
+                if (world.insideMartialSchool()) interactionMessage = world.interactInsideMartialSchool();
+                else {
+                    var site = world.nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派医馆"));
+                    interactionMessage = world.useNearbyMartialSchoolFacility(site.schoolId() + "-infirmary");
+                }
             } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
@@ -135,7 +142,7 @@ public final class JianghuGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_9)) useTechniqueOrRealtimeSkill("cloud_piercing");
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             try {
-                interactionMessage = overworldMode ? world.trainAtNearbyMartialSchool() : world.trainWithMartialMaster(map);
+                interactionMessage = (overworldMode || world.insideMartialSchool()) ? (world.insideMartialSchool() ? world.interactInsideMartialSchool() : world.trainAtNearbyMartialSchool()) : world.trainWithMartialMaster(map);
                 playerAnimation.train();
             } catch (IllegalStateException ex) { interactionMessage = ex.getMessage(); }
         }
