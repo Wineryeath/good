@@ -153,7 +153,7 @@ public final class GameWorld {
         var technique = com.jianghu.combat.MartialTechnique.find(techniqueId)
             .orElseThrow(() -> new IllegalArgumentException("未知招式：" + techniqueId));
         if (player.knowsTechnique(techniqueId)) return "你已经学会" + technique.displayName() + "。";
-        if (!player.learnedStyles().contains(technique.style())) throw new IllegalStateException("先习得" + technique.style().name() + "再来求教此招");
+        if (!player.learnedStyles().contains(technique.style())) throw new IllegalStateException("先习得" + technique.style().displayName() + "再来求教此招");
         if (feeInWen < 0) throw new IllegalArgumentException("学费不能为负");
         if (player.moneyInWen() < feeInWen) throw new IllegalStateException("银钱不足，无法学习招式");
         player.addMoney(-feeInWen); player.learnTechnique(techniqueId);
