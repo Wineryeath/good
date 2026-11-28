@@ -744,6 +744,41 @@ public final class GameWorld {
         }
     }
 
+    /** 与脚边的地图地点交互：采集资源、在客栈歇脚或查看集市。 */
+    public Optional<String> interactWithNearbyPoint(GameMap map) {
+        Optional<MapPoint> target = map.nearestInteractable(player.x(), player.y());
+        if (target.isEmpty()) return Optional.empty();
+        MapPoint point = target.get();
+        return Optional.of(switch (point.kind()) {
+            case RESOURCE -> harvestResource(point);
+            case INN -> restAtInn(point);
+            case MARKET -> "乌篷集市：各地商贩往来，可在此了解行情、买卖货物。";
+            case LANDMARK -> point.name() + "：河风拂面，远处传来市井人声。";
+            case NPC -> "这里是人物活动地点，按 E 与附近的人交谈。";
+            case EXIT -> "道路通向镇外，新的旅途还在前方。";
+        });
+    }
+
+    private final Map<String, Long> resourceHarvestDays = new LinkedHashMap<>();
+    private String harvestResource(MapPoint point) {
+        if (resourceHarvestDays.getOrDefault(point.id(), 0L) == clock.day())
+            return point.name() + "今日已经采过了，明日或许会有新草药。";
+        if (!player.spendStamina(5)) return "体力不足，歇息一会儿再采集吧。";
+        player.addItem("herb", 1);
+        resourceHarvestDays.put(point.id(), clock.day());
+        advanceMinutes(10);
+        return "你在" + point.name() + "采得草药一份（体力 -5）。";
+    }
+
+    private String restAtInn(MapPoint point) {
+        if (player.moneyInWen() < 30) return "住店歇脚需要 30 文，你的钱不够。";
+        player.addMoney(-30);
+        waitMinutes(60);
+        player.recoverStamina(20);
+        player.changeHealth(2);
+        return "你在" + point.name() + "喝茶歇息一个时辰，花费 30 文，恢复了体力与健康。";
+    }
+
     public Optional<String> talkToNearby(GameMap map) {
         return nearbyNpc(map).flatMap(position -> npcs.stream()
             .filter(n -> n.id().equals(position.npcId())).findFirst())
