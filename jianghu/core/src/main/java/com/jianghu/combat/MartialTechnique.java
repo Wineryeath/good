@@ -17,7 +17,7 @@ public enum MartialTechnique {
     MartialTechnique(String id,String name,MartialArtStyle style,int power,int staminaCost,int innerCost,String description){
         this.id=id;this.name=name;this.style=style;this.power=power;this.staminaCost=staminaCost;this.innerCost=innerCost;this.description=description;
     }
-    public String id(){return id;} public String name(){return name;} public MartialArtStyle style(){return style;}
+    public String id(){return id;} public String displayName(){return name;} public MartialArtStyle style(){return style;}
     public int power(){return power;} public int staminaCost(){return staminaCost;} public int innerCost(){return innerCost;}
     public String description(){return description;}
     public static Optional<MartialTechnique> find(String id){return Arrays.stream(values()).filter(t->t.id.equals(id)).findFirst();}
