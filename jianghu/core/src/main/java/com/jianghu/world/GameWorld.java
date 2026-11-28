@@ -549,6 +549,12 @@ public final class GameWorld {
     }
     private void settleArrivedCaravan(TradeCaravan caravan) {
         Map<TradeGood, TradeCaravan.Cargo> cargo = caravan.complete();
+        for (Map.Entry<String, Integer> wound : caravan.crewWounds().entrySet()) {
+            if (life(wound.getKey()).alive()) {
+                injureNpc(wound.getKey(), wound.getValue(), "商队" + caravan.id() + "途中遭遇劫匪");
+                life(wound.getKey()).remember("商队遇袭受伤，健康损失 " + wound.getValue() + " 点");
+            }
+        }
         long revenueTotal = 0;
         for (TradeCaravan.Cargo item : cargo.values()) {
             long revenue = Math.multiplyExact(marketPrice(item.good(), caravan.destination()), item.quantity());
@@ -558,7 +564,7 @@ public final class GameWorld {
         life(caravan.ownerNpcId()).creditMoney(revenueTotal);
         long costTotal = cargo.values().stream().mapToLong(TradeCaravan.Cargo::totalCostInWen).sum();
         long profit = revenueTotal - costTotal;
-        String report = "商队" + caravan.id() + "抵达" + caravan.destination().displayName() + "，销售收入 " + revenueTotal + " 文，净收益 " + profit + " 文";
+        String report = "商队" + caravan.id() + "抵达" + caravan.destination().displayName() + "，销售收入 " + revenueTotal + " 文，净收益 " + profit + " 文，途中损失货物 " + caravan.lostCargoQuantity() + " 件";
         for (String memberId : caravan.crew()) if (life(memberId).alive()) life(memberId).remember(report);
     }
     /** 用产业金库升级经营规模，最高五级。 */
