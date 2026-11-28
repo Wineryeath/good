@@ -89,6 +89,15 @@ public final class GameWorld {
         return activeRealtimeCombat;
     }
     public Optional<com.jianghu.combat.RealtimeCombatEncounter> activeRealtimeCombat() { return Optional.ofNullable(activeRealtimeCombat); }
+    /** Clear completed encounter objects after the desktop client has consumed their result. */
+    public void clearFinishedEncounters() {
+        if (activeRealtimeCombat != null
+                && activeRealtimeCombat.status() != com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+            activeRealtimeCombat = null;
+        if (activeCombat != null
+                && activeCombat.status() != com.jianghu.combat.CombatEncounter.Status.ONGOING)
+            activeCombat = null;
+    }
     public com.jianghu.combat.RealtimeCombatController.ActionResult realtimeCombatAction(com.jianghu.combat.CombatAction action) {
         if (activeRealtimeCombat == null) throw new IllegalStateException("当前没有进行中的实时战斗");
         return activeRealtimeCombat.perform(action);
