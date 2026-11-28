@@ -103,7 +103,7 @@ public final class GameWorld {
             if (clock.day() != previousDay) { settleNpcAging(); settleNpcRomance(); }
             if (clock.minuteOfDay() % 60 == 0) {
                 for (Npc npc : npcs) {
-                    if (life(npc.id()).alive()) life(npc.id()).passHour(npc.role(), locationFor(npc, clock.hour()), clock.hour());
+                    if (life(npc.id()).alive()) life(npc.id()).passHour(life(npc.id()).profession().orElse(npc.role()), locationFor(npc, clock.hour()), clock.hour());
                 }
                 settleNpcSocialLife();
             }
@@ -162,6 +162,26 @@ public final class GameWorld {
         guardianLife.remember("教导孩子" + child.name() + subject);
         guardianLife.changeMood(1);
         return gained;
+    }
+
+
+    /** 成年 NPC 可按学识选择职业；每人只能选择一次。 */
+    public void chooseNpcProfession(String npcId, String profession) {
+        Npc npc = requireNpc(npcId);
+        requireDescription(profession);
+        NpcLifeState state = life(npcId);
+        if (!state.alive()) throw new IllegalStateException("已故 NPC 无法选择职业");
+        if (state.ageYears() < 18) throw new IllegalStateException("未成年 NPC 尚不能独立择业");
+        int requiredEducation = switch (profession) {
+            case "农夫", "渔夫", "茶摊老板", "镖师" -> 0;
+            case "药师", "书生" -> 30;
+            case "教书先生" -> 50;
+            default -> throw new IllegalArgumentException("暂不支持该职业");
+        };
+        if (state.education() < requiredEducation)
+            throw new IllegalStateException("学识不足，无法胜任该职业");
+        state.chooseProfession(profession);
+        state.remember("成年后选择职业：" + profession);
     }
 
     /** 每个游戏日结算自主婚恋：成年单身 NPC 的互相信任关系在共同生活中逐渐发展。 */
