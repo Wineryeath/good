@@ -25,7 +25,7 @@ class GameWorldTest {
         Npc fisherman = new Npc("fisher","陆老七","渔夫",List.of(
             new Npc.Schedule(5,10,"east-bank",0)),5);
         Player player = new Player("旅人");
-        player.moveTo(17,8);
+        player.moveTo(13,8);
         GameWorld world = new GameWorld(player,new WorldClock(1,7*60),List.of(fisherman));
         assertEquals("fisher",world.nearbyNpc(GameMap.starterTown()).orElseThrow().npcId());
     }
