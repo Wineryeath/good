@@ -236,7 +236,11 @@ public final class JianghuGame extends ApplicationAdapter {
             var technique = com.jianghu.combat.MartialTechnique.find(id);
             if (technique.isEmpty() || !world.player().knowsTechnique(id)) { interactionMessage = "尚未学会这门招式。"; return; }
             if (technique.get().style() != world.player().martialStyle()) { interactionMessage = "当前武学路数与招式不合。"; return; }
-            performRealtimeAction(CombatAction.SKILL);
+            try {
+                var result = world.realtimeCombatTechnique(id);
+                interactionMessage = result.accepted() ? result.message() + "（体力 -" + result.staminaSpent() + "）" : result.message();
+                if (result.accepted()) playerAnimation.attack();
+            } catch (IllegalStateException | IllegalArgumentException ex) { interactionMessage = ex.getMessage(); }
         } else useTechnique(id);
     }
     private void useTechniqueOrRealtimeSkillForCurrentStyle() {
