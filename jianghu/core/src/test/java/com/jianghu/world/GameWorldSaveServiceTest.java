@@ -11,14 +11,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GameWorldSaveServiceTest {
     private GameWorld world(long day, int minute) {
-        return new GameWorld(new Player("存档侠客"), new WorldClock(day, minute), List.of(
+        GameWorld world = new GameWorld(new Player("存档侠客"), new WorldClock(day, minute), List.of(
             new Npc("npc-inn", "周掌柜", "客栈老板", List.of(new Npc.Schedule(6, 20, "inn", 0)), 0),
             new Npc("npc-worker", "阿福", "伙计", List.of(new Npc.Schedule(6, 20, "inn", 0)), 0)));
+        world.offerQuest(new com.jianghu.quest.Quest("herb-delivery", java.util.Map.of("herb", 3)), 180);
+        return world;
     }
     @Test void worldSaveRestoresPlayerNpcLifeRelationshipsAndCalendar() throws Exception {
         GameWorld original = world(2, 350);
         original.player().changeHealth(-18); original.player().addItem("herb", 5); original.player().moveTo(12, 7);
         original.setWeather("连绵细雨");
+        original.acceptQuest("herb-delivery"); original.quest("herb-delivery").orElseThrow().record("herb", 1);
         original.life("npc-inn").changeMood(13); original.life("npc-inn").creditMoney(260);
         original.life("npc-inn").remember("收到旅人赠予的草药");
         original.relationship("npc-inn").talk(true); original.relationship("npc-inn").changeTrust(4);
@@ -52,6 +55,8 @@ class GameWorldSaveServiceTest {
             restored.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).stock());
         assertEquals(original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).demand(),
             restored.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).demand());
+        assertEquals(original.quest("herb-delivery").orElseThrow().progress(), restored.quest("herb-delivery").orElseThrow().progress());
+        assertEquals(original.quest("herb-delivery").orElseThrow().status(), restored.quest("herb-delivery").orElseThrow().status());
         Files.deleteIfExists(file); Files.deleteIfExists(directory);
     }
 }
