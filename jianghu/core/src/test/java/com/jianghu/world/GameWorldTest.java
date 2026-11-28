@@ -395,7 +395,7 @@ class GameWorldTest {
         world.advanceMinutes(24 * 60);
         assertEquals(820, inn.treasuryInWen());
         assertEquals(1, inn.settledDays());
-        assertThrows(IllegalArgumentException.class, () -> world.foundNpcBusiness("child", "inn", "重复客栈", BusinessType.INN, 1, 0));
+        assertThrows(IllegalArgumentException.class, () -> world.foundNpcBusiness("parent", "inn", "重复客栈", BusinessType.INN, 1, 0));
     }
 
     @Test void familyBusinessCanBeInheritedWithItsTreasuryAndStaff() {
@@ -414,7 +414,7 @@ class GameWorldTest {
         assertEquals(900, pharmacy.treasuryInWen());
         assertFalse(pharmacy.employees().contains("child"));
         assertTrue(pharmacy.employees().contains("worker"));
-        assertEquals(NpcFamilyRegistry.EventType.INHERITANCE, world.familyRegistry().events().get(2).type());
+        assertEquals(NpcFamilyRegistry.EventType.INHERITANCE, world.familyRegistry().events().get(3).type());
         assertThrows(IllegalStateException.class, () -> world.inheritNpcBusiness("pharmacy", "worker"));
     }
 
