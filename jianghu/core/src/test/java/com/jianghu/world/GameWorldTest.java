@@ -83,4 +83,28 @@ class GameWorldTest {
         assertThrows(IllegalArgumentException.class,() -> world.helpNpc("missing","帮忙"));
     }
 
+
+    @Test void npcsSocializeWhenTheirSchedulesOverlap() {
+        Npc shopkeeper = new Npc("shop","沈掌柜","茶摊老板",List.of(
+            new Npc.Schedule(6,20,"tea-stall",0)),0);
+        Npc neighbor = new Npc("neighbor","阿禾","居民",List.of(
+            new Npc.Schedule(6,20,"tea-stall",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,7*60+30),List.of(shopkeeper,neighbor));
+        world.socialGraph().connect("shop","neighbor",com.jianghu.social.NpcSocialGraph.RelationType.FRIEND,10);
+        int moodBefore = world.life("shop").mood();
+        world.advanceMinutes(30);
+        assertEquals(11,world.socialGraph().relation("shop","neighbor").orElseThrow().strength());
+        assertEquals(moodBefore + 2,world.life("shop").mood());
+        assertTrue(world.life("shop").memories().stream().anyMatch(m -> m.contains("阿禾") && m.contains("相聚")));
+    }
+
+    @Test void npcSocialInteractionHappensAtMostOncePerDay() {
+        Npc first = new Npc("first","甲","居民",List.of(new Npc.Schedule(6,20,"square",0)),0);
+        Npc second = new Npc("second","乙","居民",List.of(new Npc.Schedule(6,20,"square",0)),0);
+        GameWorld world = new GameWorld(new Player("旅人"),new WorldClock(1,7*60+30),List.of(first,second));
+        world.socialGraph().connect("first","second",com.jianghu.social.NpcSocialGraph.RelationType.ENEMY,-10);
+        world.advanceMinutes(120);
+        assertEquals(-11,world.socialGraph().relation("first","second").orElseThrow().strength());
+    }
+
 }
