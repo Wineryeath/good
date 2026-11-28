@@ -24,6 +24,11 @@ public final class Quest {
         if (progress.equals(required)) status = Status.READY_TO_TURN_IN;
     }
     public void turnIn() { if (status != Status.READY_TO_TURN_IN) throw new IllegalStateException("任务目标尚未完成"); status = Status.COMPLETED; }
+    public void restoreSnapshot(QuestSnapshot snapshot) {
+        if (snapshot == null || !id.equals(snapshot.id()) || !required.equals(snapshot.objectives()))
+            throw new IllegalArgumentException("任务存档与当前任务定义不匹配");
+        progress.clear(); progress.putAll(snapshot.progress()); status = snapshot.status();
+    }
     public Map<String,Integer> objectives() { return Map.copyOf(required); }
     public String id() { return id; }
     public Status status() { return status; }
