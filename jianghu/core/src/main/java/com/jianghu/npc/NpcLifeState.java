@@ -25,6 +25,7 @@ public final class NpcLifeState {
 
     public int hunger() { return hunger; }
     public int ageYears() { return ageYears; }
+    public boolean ageInitialized() { return ageInitialized; }
     public int daysLivedThisYear() { return daysLivedThisYear; }
     public LifeStage lifeStage() {
         if (ageYears < 12) return LifeStage.CHILD;
