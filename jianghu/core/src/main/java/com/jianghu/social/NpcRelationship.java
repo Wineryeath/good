@@ -17,5 +17,9 @@ public final class NpcRelationship {
     }
     public void changeFavor(int amount) { favor = clamp(favor + amount); }
     public void changeTrust(int amount) { trust = clamp(trust + amount); }
+    public void restoreSnapshot(NpcRelationshipSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("关系快照不能为空");
+        favor = snapshot.favor(); trust = snapshot.trust(); conversations = snapshot.conversations();
+    }
     private static int clamp(int value) { return Math.max(-100, Math.min(100, value)); }
 }
