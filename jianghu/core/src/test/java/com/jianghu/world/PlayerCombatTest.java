@@ -69,4 +69,53 @@ class PlayerCombatTest {
         world.startBanditEncounter();
         assertThrows(IllegalStateException.class, world::startBanditEncounter);
     }
+    @Test void fiveMartialStylesCanBeLearnedAndChangeCombatAttributes() {
+        Player player = new Player("行旅人");
+        GameWorld world = world(player);
+        assertEquals(5, com.jianghu.combat.MartialArtStyle.values().length);
+        assertThrows(IllegalStateException.class, () -> player.selectStyle(com.jianghu.combat.MartialArtStyle.SWORD));
+        world.learnMartialStyle(com.jianghu.combat.MartialArtStyle.SWORD, 300);
+        player.selectStyle(com.jianghu.combat.MartialArtStyle.SWORD);
+        assertEquals(3, player.attackPower());
+        assertEquals(1_700, player.moneyInWen());
+    }
+
+    @Test void techniquesRequireTheirStyleAndSpendBothResources() {
+        Player player = new Player("行旅人");
+        GameWorld world = world(player);
+        assertThrows(IllegalStateException.class, () -> world.learnMartialTechnique("cloud_sword", 100));
+        world.learnMartialStyle(com.jianghu.combat.MartialArtStyle.SWORD, 0);
+        world.learnMartialTechnique("cloud_sword", 0);
+        player.selectStyle(com.jianghu.combat.MartialArtStyle.SWORD);
+        CombatEncounter fight = world.startBanditEncounter();
+        int beforeEnergy = player.innerEnergy();
+        int beforeStamina = player.stamina();
+        fight.useTechnique("cloud_sword");
+        assertEquals(42 - (3 + 3 + 2 + 10 - 2), fight.enemy().health());
+        assertEquals(beforeEnergy - 20, player.innerEnergy());
+        assertEquals(beforeStamina - 12, player.stamina());
+    }
+
+    @Test void insufficientInnerEnergyDoesNotConsumeStaminaOrAdvanceFight() {
+        Player player = new Player("行旅人");
+        player.learnStyle(com.jianghu.combat.MartialArtStyle.SWORD);
+        player.learnTechnique("cloud_sword");
+        player.selectStyle(com.jianghu.combat.MartialArtStyle.SWORD);
+        player.spendInnerEnergy(60);
+        CombatEncounter fight = world(player).startBanditEncounter();
+        assertThrows(IllegalStateException.class, () -> fight.useTechnique("cloud_sword"));
+        assertEquals(100, player.stamina());
+        assertEquals(42, fight.enemy().health());
+        assertEquals(0, fight.rounds());
+    }
+
+    @Test void meditationRestoresInnerEnergyButCannotBeUsedDuringCombat() {
+        Player player = new Player("行旅人");
+        GameWorld world = world(player);
+        player.spendInnerEnergy(50);
+        assertTrue(world.meditate().contains("内力恢复"));
+        assertEquals(75, player.innerEnergy());
+        world.startBanditEncounter();
+        assertThrows(IllegalStateException.class, world::meditate);
+    }
 }
