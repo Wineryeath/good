@@ -484,4 +484,37 @@ class GameWorldTest {
         assertEquals(120, world.regionalMarket(MarketRegion.BEILING).stockOf(TradeGood.TEA));
     }
 
+    @Test void merchantCaravanBuysTravelsAndSellsAtDestinationMarket() {
+        Npc owner = new Npc("merchant", "行商", "居民", List.of(), 0);
+        Npc guard = new Npc("guard", "护卫", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner, guard));
+        world.life("merchant").creditMoney(10000);
+        var caravan = world.createTradeCaravan("merchant", "tea-run", MarketRegion.JIANGNAN, MarketRegion.BEILING);
+        world.addTradeCaravanCrew("merchant", "tea-run", "guard");
+        long cost = world.loadTradeCaravan("merchant", "tea-run", TradeGood.TEA, 10);
+        assertTrue(cost > 0);
+        int travelMinutes = world.departTradeCaravan("merchant", "tea-run");
+        assertEquals(540, travelMinutes);
+        world.advanceMinutes(travelMinutes);
+        assertEquals(TradeCaravan.State.COMPLETED, caravan.state());
+        assertTrue(world.life("merchant").moneyInWen() > 10500 - cost);
+        assertTrue(world.life("merchant").memories().stream().anyMatch(m -> m.contains("净收益")));
+        assertTrue(world.life("guard").memories().stream().anyMatch(m -> m.contains("净收益")));
+    }
+    @Test void caravanWeatherCausesDelayAndCrewMustBeAlive() {
+        Npc owner = new Npc("merchant", "行商", "居民", List.of(), 0);
+        Npc dead = new Npc("dead", "病者", "居民", List.of(), 0);
+        GameWorld world = new GameWorld(new Player("旅人"), new WorldClock(1, 8 * 60), List.of(owner, dead));
+        var caravan = world.createTradeCaravan("merchant", "storm-run", MarketRegion.JIANGNAN, MarketRegion.DONGHAI);
+        world.recordNpcDeath("dead", "病逝");
+        assertThrows(IllegalStateException.class, () -> world.addTradeCaravanCrew("merchant", "storm-run", "dead"));
+        world.life("merchant").creditMoney(5000);
+        world.loadTradeCaravan("merchant", "storm-run", TradeGood.TEA, 2);
+        world.departTradeCaravan("merchant", "storm-run");
+        world.setWeather("暴雨");
+        world.advanceMinutes(960);
+        assertEquals(TradeCaravan.State.COMPLETED, caravan.state());
+        assertEquals(60, caravan.delayMinutes());
+    }
+
 }
