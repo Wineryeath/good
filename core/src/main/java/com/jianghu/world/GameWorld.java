@@ -5,6 +5,10 @@ import com.jianghu.map.GameMap;
 import com.jianghu.map.MapPoint;
 import com.jianghu.npc.Npc;
 import com.jianghu.time.WorldClock;
+import com.jianghu.social.NpcRelationship;
+import com.jianghu.social.DialogueService;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +18,7 @@ public final class GameWorld {
     private final WorldClock clock;
     private final List<Npc> npcs;
     private String weather = "晴";
+    private final Map<String, NpcRelationship> relationships = new LinkedHashMap<>();
     public GameWorld(Player player, WorldClock clock, List<Npc> npcs) {
         this.player = player; this.clock = clock; this.npcs = List.copyOf(npcs);
     }
@@ -36,6 +41,19 @@ public final class GameWorld {
             Optional<MapPoint> point = map.points().stream().filter(p -> p.id().equals(place)).findFirst();
             return point.map(p -> new NpcPosition(npc.id(), npc.name(), npc.role(), p.x(), p.y(), place)).orElse(null);
         }).filter(java.util.Objects::nonNull).toList();
+    }
+    public NpcRelationship relationship(String npcId) {
+        if (npcs.stream().noneMatch(n -> n.id().equals(npcId))) throw new IllegalArgumentException("未知 NPC：" + npcId);
+        return relationships.computeIfAbsent(npcId, ignored -> new NpcRelationship());
+    }
+    public Optional<String> talkToNearby(GameMap map) {
+        return nearbyNpc(map).flatMap(position -> npcs.stream()
+            .filter(n -> n.id().equals(position.npcId())).findFirst())
+            .map(npc -> {
+                NpcRelationship bond = relationship(npc.id());
+                bond.talk(true);
+                return DialogueService.greeting(npc, clock.hour(), bond);
+            });
     }
     public Optional<NpcPosition> nearbyNpc(GameMap map) {
         return npcPositions(map).stream()
