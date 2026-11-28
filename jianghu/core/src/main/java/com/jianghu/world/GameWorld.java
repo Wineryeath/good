@@ -30,6 +30,7 @@ import java.util.Optional;
 public final class GameWorld {
     public record NpcPosition(String npcId, String name, String role, int x, int y, String schedulePlace) {}
     private final Player player;
+    private final com.jianghu.map.OverworldExplorer overworldExplorer = new com.jianghu.map.OverworldExplorer();
     private final WorldClock clock;
     private final List<Npc> npcs;
     private String weather = "晴";
@@ -211,7 +212,7 @@ public final class GameWorld {
         for (var entry : caravans.entrySet()) caravanSnapshots.put(entry.getKey(), entry.getValue().snapshot());
         return new GameWorldSnapshot(com.jianghu.character.PlayerSnapshot.capture(player), clock.day(), clock.minuteOfDay(),
             weather, lives, bonds, businessSnapshots, marketSnapshots, questSnapshots, questRewards, caravanSnapshots,
-            familyRegistry.snapshot(), socialGraph.snapshot(), lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
+            familyRegistry.snapshot(), socialGraph.snapshot(), overworldExplorer.regionId(), overworldExplorer.x(), overworldExplorer.y(), lastAgedDay, lastBusinessDay, deathRecorded, lastSocialDay,
             independentHouseholds, courtshipDays, masterTrainingDays, masterFavor);
     }
     /** 恢复核心世界状态；快照中的 NPC 身份必须与当前场景完全一致。 */
@@ -221,6 +222,7 @@ public final class GameWorld {
         if (!snapshot.npcLives().keySet().equals(expectedIds) || !snapshot.relationships().keySet().equals(expectedIds))
             throw new IllegalArgumentException("存档 NPC 名册与当前场景不一致");
         player.restoreSnapshot(snapshot.player());
+        overworldExplorer.restorePosition(snapshot.overworldRegion(), snapshot.overworldX(), snapshot.overworldY());
         clock.restore(snapshot.day(), snapshot.minuteOfDay());
         weather = snapshot.weather();
         for (Npc npc : npcs) {
@@ -260,6 +262,7 @@ public final class GameWorld {
         activeCombat = null; activeRealtimeCombat = null;
     }
     public Player player() { return player; }
+    public com.jianghu.map.OverworldExplorer overworld() { return overworldExplorer; }
     public WorldClock clock() { return clock; }
     public List<Npc> npcs() { return npcs; }
     public NpcSocialGraph socialGraph() { return socialGraph; }
