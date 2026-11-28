@@ -105,14 +105,53 @@ public final class GameWorld {
     public Optional<com.jianghu.map.MartialSchoolSite> nearbyMartialSchoolSite() {
         return com.jianghu.map.MartialSchoolSite.nearby(overworldExplorer.regionId(), overworldExplorer.x(), overworldExplorer.y());
     }
+    /** 当前门派驻地开放的四类功能场所。 */
+    public List<com.jianghu.map.MartialSchoolFacility> nearbyMartialSchoolFacilities() {
+        return nearbyMartialSchoolSite().map(site -> com.jianghu.map.MartialSchoolFacility.forSchool(site.schoolId())).orElse(List.of());
+    }
+    /** 使用门派设施；效果直接作用于现有玩家与世界时钟状态。 */
+    public String useNearbyMartialSchoolFacility(String facilityId) {
+        var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("附近没有门派设施"));
+        var facility = com.jianghu.map.MartialSchoolFacility.find(facilityId).filter(f -> f.schoolId().equals(site.schoolId()))
+            .orElseThrow(() -> new IllegalArgumentException("此处没有该门派设施"));
+        var school = site.school();
+        if (!schoolMemberships.contains(school.id())) throw new IllegalStateException("只有本门弟子才能使用门内设施");
+        switch (facility.type()) {
+            case TRAINING_GROUND: return trainAtNearbyMartialSchool();
+            case SCRIPTURE_HALL:
+                if (player.moneyInWen() < 50) throw new IllegalStateException("抄录拳谱需缴纳 50 文纸墨费");
+                player.addMoney(-50); int levels = player.gainMartialExperience(12);
+                player.recoverInnerEnergy(8); advanceMinutes(30);
+                return "你在" + facility.name() + "研读本门典籍，武学经验 +12，内力恢复 8。" + (levels > 0 ? "境界提升至第" + player.martialLevel() + "重。" : "");
+            case MEDITATION_HALL:
+                if ((activeCombat != null && activeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING)
+                        || (activeRealtimeCombat != null && activeRealtimeCombat.status() == com.jianghu.combat.RealtimeCombatEncounter.Status.ONGOING))
+                    throw new IllegalStateException("交手之际无法入静室运功");
+                player.recoverInnerEnergy(40); player.recoverStamina(8); advanceMinutes(45);
+                return "你在" + facility.name() + "静坐调息，内力恢复至" + player.innerEnergy() + "，体力恢复至" + player.stamina() + "。";
+            case INFIRMARY:
+                if (player.health() >= 100 && player.stamina() >= 100) throw new IllegalStateException("你并无明显伤势，无需占用医者诊位");
+                if (player.moneyInWen() < 120) throw new IllegalStateException("门中诊治需支付 120 文药材费");
+                player.addMoney(-120); player.changeHealth(35); player.recoverStamina(15); advanceMinutes(30);
+                return "你在" + facility.name() + "敷药调理，健康恢复至" + player.health() + "，体力恢复至" + player.stamina() + "。";
+            default: throw new IllegalStateException("未知门派设施");
+        }
+    }
     public List<com.jianghu.combat.MartialSchool> martialSchools() { return com.jianghu.combat.MartialSchool.all(); }
     public java.util.Set<String> schoolMemberships() { return java.util.Set.copyOf(schoolMemberships); }
     public int martialSchoolFavor(String schoolId) { return schoolFavor.getOrDefault(schoolId, 0); }
     public String inspectNearbyMartialSchool() {
         var site = nearbyMartialSchoolSite().orElseThrow(() -> new IllegalStateException("此处没有门派驻地；请前往武林群山、北岭或西蜀寻找山门"));
         var school = site.school();
+        String facilities = com.jianghu.map.MartialSchoolFacility.forSchool(school.id()).stream()
+            .map(f -> f.name() + "（" + switch (f.type()) {
+                case TRAINING_GROUND -> "L 修习";
+                case SCRIPTURE_HALL -> "P 研读";
+                case MEDITATION_HALL -> "H 调息";
+                case INFIRMARY -> "R 疗伤";
+            } + "）").collect(java.util.stream.Collectors.joining("、"));
         return site.landmark() + " · " + school.name() + "。" + school.philosophy() + "。入门需声望 "
-            + school.entryReputation() + "、束脩 " + school.entryFeeInWen() + " 文。按 M 拜入门墙，按 L 随门中弟子修习。"
+            + school.entryReputation() + "、束脩 " + school.entryFeeInWen() + " 文。门内设施：" + facilities + "。"
             + (schoolMemberships.contains(school.id()) ? " 你已是本门弟子，门中信任 " + martialSchoolFavor(school.id()) + "/3。" : "");
     }
     public String joinNearbyMartialSchool() {
