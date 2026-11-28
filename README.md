@@ -1,47 +1,40 @@
-# 一人一江湖
+# AGI-X
 
-> 一人一江湖，万般皆人生。
+AGI-X is a modular, high-autonomy AI task-execution system.
 
-游戏客户端开发入口已迁移为 **Java 17 + LibGDX**，不再以 HTML 页面作为客户端。
+The user provides an objective. AGI-X is designed to research, plan, execute permitted actions, verify outcomes, learn from task history, and request human input only at meaningful decision or permission boundaries.
 
-## 环境要求
+## Project status
+This repository is the implementation base for AGI-X. Existing AGI-X work is preserved. The standalone board-game simulator **因果教廷** is available in [game/](game/).
 
-- JDK 17 或更高版本
-- Gradle 8.x
-- 桌面端支持 OpenGL 的环境
+The first AGI-X milestone is a safe, testable orchestration core:
+- explicit task state and bounded execution cycles
+- pluggable model and tool interfaces
+- SQLite-backed task memory
+- policy checks and approval gates
+- observable execution and tests
 
-## 运行桌面游戏
+AGI-X does not claim unlimited intelligence or autonomous self-modification. Capability improvements must be measurable, reviewed, versioned, and reversible.
+
+## 因果教廷 · 桌游模拟器
+
+A self-contained browser-based, 3–6 player hot-seat strategy game. No dependencies or build step required.
+
+- [Open the game source](game/index.html)
+- [Game rules and quick start](game/README.md)
+
+Download `game/index.html` and open it in a modern browser to play.
+
+## AGI-X quick start
+
+Requires Python 3.11+.
 
 ```bash
-gradle :lwjgl3:run
+python -m venv .venv
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"
+agix --help
 ```
 
-## 工程模块
-
-- `core/`：纯 Java 游戏规则层，不依赖图形界面。
-- `lwjgl3/`：LibGDX 桌面客户端与渲染入口。
-- `assets/`：地图、角色图块、音频和配置数据（逐步建设）。
-- `core/src/test/`：规则层自动化测试。
-- `.github/workflows/jianghu-java.yml`：GitHub Actions 自动运行核心测试并编译桌面客户端。
-
-## 当前 Java 实现
-
-- 世界时钟、跨日推进与传统时辰。
-- 玩家基础属性、体力、银钱（以文为内部最小单位）和背包。
-- NPC 按小时查询日程地点，并在地图中显示当前活动位置。
-- NPC 情境对话：根据人物身份、时辰和玩家关系生成回应。
-- NPC 人生状态：饥饿、精力、心情、职业收入与近期记忆随世界时间推进。
-- 玩家移动和等待都会推进世界时间，并在整点结算 NPC 生活状态。
-- NPC 关系：记录交谈次数、好感度与信任度，并限制数值范围。
-- 任务目标进度与“待交付 / 已完成”分离。
-- LibGDX 桌面窗口、俯视地图占位渲染、角色移动与时间推进。
-
-早期 `jianghu/index.html` 仅保留作历史原型参考，不是 Java 客户端入口。
-
-## 后续开发顺序
-
-1. 数据驱动地图：图层、碰撞、资源点、区域出口。
-2. 扩展 NPC 日程、分支对话、关系事件与任务触发。
-3. 饥渴、饮食、物品耐久、商店库存与动态价格。
-4. 生活职业、武学战斗、门派与江湖势力。
-5. 存档迁移、内容校验与完整自动化测试。
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
