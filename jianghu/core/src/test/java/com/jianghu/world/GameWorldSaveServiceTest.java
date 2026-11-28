@@ -28,6 +28,9 @@ class GameWorldSaveServiceTest {
         var inn = original.foundNpcBusiness("npc-inn", "family-inn", "周家客栈", com.jianghu.business.BusinessType.INN, 120, 15, 8, 3000);
         inn.restock(com.jianghu.business.TradeGood.MEAL, 4, 25); inn.hire("npc-worker");
         original.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).buy(7, com.jianghu.business.TradeGood.HERB);
+        var caravan = original.createTradeCaravan("npc-inn", "caravan-east", com.jianghu.business.MarketRegion.JIANGNAN, com.jianghu.business.MarketRegion.EASTERN_SEA);
+        original.addTradeCaravanCrew("npc-inn", "caravan-east", "npc-worker");
+        caravan.load(com.jianghu.business.TradeGood.HERB, 5, 500); caravan.depart(500);
         original.advanceMinutes(70);
         var directory = Files.createTempDirectory("jianghu-world-save");
         var file = directory.resolve("world-1.sav");
@@ -57,6 +60,9 @@ class GameWorldSaveServiceTest {
             restored.regionalMarket(com.jianghu.business.MarketRegion.JIANGNAN).demand());
         assertEquals(original.quest("herb-delivery").orElseThrow().progress(), restored.quest("herb-delivery").orElseThrow().progress());
         assertEquals(original.quest("herb-delivery").orElseThrow().status(), restored.quest("herb-delivery").orElseThrow().status());
+        var restoredCaravan = restored.tradeCaravan("caravan-east").orElseThrow();
+        assertEquals(caravan.state(), restoredCaravan.state()); assertEquals(caravan.remainingMinutes(), restoredCaravan.remainingMinutes());
+        assertEquals(caravan.crew(), restoredCaravan.crew()); assertEquals(caravan.cargo(), restoredCaravan.cargo());
         Files.deleteIfExists(file); Files.deleteIfExists(directory);
     }
 }
