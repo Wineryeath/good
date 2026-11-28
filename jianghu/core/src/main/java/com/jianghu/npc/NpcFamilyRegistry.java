@@ -81,6 +81,19 @@ public final class NpcFamilyRegistry {
         return List.copyOf(result);
     }
 
+    public NpcFamilySnapshot snapshot() {
+        Map<String, Set<String>> parentCopy = new LinkedHashMap<>();
+        parents.forEach((id, values) -> parentCopy.put(id, Set.copyOf(values)));
+        return new NpcFamilySnapshot(spouses, parentCopy, events);
+    }
+    public void restoreSnapshot(NpcFamilySnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("家庭谱系快照不能为空");
+        spouses.clear(); parents.clear(); children.clear(); events.clear();
+        for (var entry : snapshot.parents().entrySet()) for (String parent : entry.getValue()) addChild(parent, entry.getKey());
+        for (var entry : snapshot.spouses().entrySet())
+            if (entry.getKey().compareTo(entry.getValue()) < 0) marry(entry.getKey(), entry.getValue());
+        for (FamilyEvent event : snapshot.events()) recordEvent(event.type(), event.participants(), event.worldDay(), event.description());
+    }
     private boolean isAncestor(String possibleAncestor, String npcId) {
         for (String parent : parents.getOrDefault(npcId, Set.of())) {
             if (parent.equals(possibleAncestor) || isAncestor(possibleAncestor, parent)) return true;
