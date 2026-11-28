@@ -40,4 +40,25 @@ class NpcLifeStateTest {
         assertEquals(NpcLifeState.LifeStage.ELDER, elder.lifeStage());
     }
 
+    @Test void deathStopsHealthAndTransfersEstateExactlyOnce() {
+        NpcLifeState owner = new NpcLifeState();
+        NpcLifeState heir = new NpcLifeState();
+        long estate = owner.moneyInWen();
+        long before = heir.moneyInWen();
+        owner.die();
+        assertFalse(owner.alive());
+        assertEquals(estate, owner.transferWealthTo(heir));
+        assertEquals(before + estate, heir.moneyInWen());
+        assertEquals(0, owner.moneyInWen());
+        assertThrows(IllegalStateException.class, () -> owner.transferWealthTo(heir));
+        assertThrows(IllegalStateException.class, () -> owner.changeHealth(-1));
+    }
+
+    @Test void healthCannotDropBelowZero() {
+        NpcLifeState life = new NpcLifeState();
+        life.changeHealth(-150);
+        assertEquals(0, life.health());
+        assertFalse(life.alive());
+    }
+
 }
